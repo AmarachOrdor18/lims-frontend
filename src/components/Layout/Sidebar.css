@@ -1,0 +1,16 @@
+/* Placeholder CSS for Layout */
+.layout {
+  display: flex;
+  height: 100vh;
+}
+
+.sidebar {
+  width: 250px;
+  border-right: 1px solid #eee;
+  padding: 20px;
+}
+
+.main {
+  flex: 1;
+  overflow-y: auto;
+}
