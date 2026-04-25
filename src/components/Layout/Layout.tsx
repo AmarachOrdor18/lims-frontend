@@ -1,38 +1,19 @@
-import React from 'react';
-import { Outlet, useNavigate } from 'react-router-dom';
-import { useAuthStore } from '../../store/authStore';
+import React, { useState } from 'react';
+import { Outlet } from 'react-router-dom';
+import { Sidebar } from './Sidebar';
+import { TopBar } from './TopBar';
 
 export const Layout: React.FC = () => {
-  const { logout, user } = useAuthStore();
-  const navigate = useNavigate();
-
-  const handleLogout = () => {
-    logout();
-    navigate('/login');
-  };
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh' }}>
-      {/* Sidebar */}
-      <div style={{ width: '250px', borderRight: '1px solid #eee', padding: '20px' }}>
-        <h2>LIMS</h2>
-        <nav>
-          <div><a href="/dashboard">Dashboard</a></div>
-          <div><a href="/laptops">Laptops</a></div>
-          <div><a href="/employees">Employees</a></div>
-          <div><a href="/assignments">Assignments</a></div>
-          <div><a href="/settings">Settings</a></div>
-        </nav>
-        <div style={{ marginTop: '40px', paddingTop: '20px', borderTop: '1px solid #eee' }}>
-          <p style={{ fontSize: '12px', color: '#666' }}>Logged in as: {user?.email}</p>
-          <button onClick={handleLogout} style={{ padding: '8px 16px' }}>
-            Logout
-          </button>
-        </div>
-      </div>
-      {/* Main */}
-      <div style={{ flex: 1 }}>
-        <Outlet />
+    <div className="app-shell">
+      <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
+      <div className={`main-content ${isSidebarOpen ? 'sidebar-open' : ''}`}>
+        <TopBar onMenuClick={() => setIsSidebarOpen(!isSidebarOpen)} />
+        <main className="page-content">
+          <Outlet />
+        </main>
       </div>
     </div>
   );

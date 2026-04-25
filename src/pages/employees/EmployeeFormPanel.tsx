@@ -1,13 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Save } from 'lucide-react';
+import { Save } from 'lucide-react';
+import { SlidePanel } from '../../components/UI/SlidePanel';
 import { api } from '../../api';
 import { toast } from 'sonner';
 
 const DEPARTMENTS = [
-  'Engineering', 'Business Development', 'Internship', 'Project Management', 
-  'Operations', 'Executive', 'Marketing', 'Facilities', 'Qoospayce', 
-  'Partnerships & Strategy', 'Product & Design', 'People & Culture'
+  'Engineering', 'Business Development', 'Internship', 'Project Management',
+  'Operations', 'Executive', 'Marketing', 'Facilities', 'Qoospayce',
+  'Partnerships & Strategy', 'Product & Design', 'People & Culture',
+  'HR', 'Finance', 'ICT', 'Sales', 'Legal', 'Admin',
 ];
 
 const ENTITIES = ['Qucoon', 'Rubies', 'Qucoon Kenya', 'TeSA'];
@@ -15,11 +16,18 @@ const LOCATIONS = ['Lagos, Nigeria', 'Nairobi, Kenya'];
 const STAFF_TYPES = ['Staff', 'Corp Member', 'Intern', 'Contract Staff'];
 const SENIORITY_LEVELS = ['C-Suite', 'Lead', 'Manager', 'Associate', 'Corp Member', 'Intern', 'Support Staff'];
 
-export const EmployeeForm: React.FC = () => {
-  const { id } = useParams<{ id?: string }>();
-  const navigate = useNavigate();
-  const isEdit = id && id !== 'new';
-  
+interface EmployeeFormPanelProps {
+  isOpen: boolean;
+  onClose: () => void;
+  employeeId?: string | null;
+  onSuccess: () => void;
+}
+
+export const EmployeeFormPanel: React.FC<EmployeeFormPanelProps> = ({
+  isOpen, onClose, employeeId, onSuccess,
+}) => {
+  const isEdit = !!employeeId;
+
   const [form, setForm] = useState({
     first_name: '',
     last_name: '',
@@ -31,23 +39,31 @@ export const EmployeeForm: React.FC = () => {
     staff_type: 'Staff',
     seniority: 'Associate',
   });
-  
+
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    if (isEdit) {
-      fetchEmployee();
-    } else {
-      setLoading(false);
+    if (isOpen) {
+      if (isEdit) {
+        fetchEmployee();
+      } else {
+        setForm({
+          first_name: '', last_name: '', email: '', department: '',
+          job_title: '', entity: 'Qucoon', location: 'Lagos, Nigeria',
+          staff_type: 'Staff', seniority: 'Associate',
+        });
+        setErrors({});
+        setLoading(false);
+      }
     }
-  }, [id]);
+  }, [isOpen, employeeId]);
 
   const fetchEmployee = async () => {
     try {
       setLoading(true);
-      const { data } = await api.get(`/employees/${id}`);
+      const { data } = await api.get(`/employees/${employeeId}`);
       setForm({
         first_name: data.first_name,
         last_name: data.last_name,
@@ -81,15 +97,17 @@ export const EmployeeForm: React.FC = () => {
     e.preventDefault();
     const errs = validate();
     if (Object.keys(errs).length) { setErrors(errs); return; }
-    
+
     setSaving(true);
     try {
       if (isEdit) {
-        await api.patch(`/employees/${id}`, form);
+        await api.patch(`/employees/${employeeId}`, form);
       } else {
         await api.post('/employees', form);
       }
-      navigate('/employees');
+      toast.success(isEdit ? 'Employee updated' : 'Employee added');
+      onSuccess();
+      onClose();
     } catch (e: any) {
       toast.error(e.message || 'Failed to save employee');
     } finally {
@@ -97,28 +115,25 @@ export const EmployeeForm: React.FC = () => {
     }
   };
 
-  if (loading) return <div style={{ padding: 80, textAlign: 'center' }}>Loading...</div>;
+  if (!isOpen) return null;
 
   return (
-    <div>
-      <div className="page-header">
-        <div className="flex items-center gap-3">
-          <button className="btn btn-ghost btn-icon" onClick={() => navigate(-1)}>
-            <ArrowLeft size={16} />
-          </button>
-          <div>
-            <h1>{isEdit ? 'Edit Employee' : 'Add New Employee'}</h1>
-            <p className="subtitle">{isEdit ? `Editing ${form.first_name} ${form.last_name}` : 'Register a new staff member'}</p>
-          </div>
+    <SlidePanel
+      isOpen={isOpen}
+      onClose={onClose}
+      title={isEdit ? 'Edit Employee' : 'Add New Employee'}
+      width={500}
+    >
+      {loading ? (
+        <div style={{ padding: 60, textAlign: 'center' }}>
+          <div className="spinner mx-auto" />
         </div>
-      </div>
-
-      <div className="card" style={{ maxWidth: 700 }}>
-        <form id="employee-form" onSubmit={handleSubmit}>
+      ) : (
+        <form id="employee-form-panel" onSubmit={handleSubmit}>
           <div className="form-grid-2">
             <div className="form-group">
-              <label htmlFor="first_name" className="form-label">First Name *</label>
-              <input id="first_name" className="form-input"
+              <label htmlFor="ep-first-name" className="form-label">First Name *</label>
+              <input id="ep-first-name" className="form-input"
                 placeholder="e.g. James"
                 value={form.first_name}
                 onChange={e => setForm(p => ({ ...p, first_name: e.target.value }))} />
@@ -126,8 +141,8 @@ export const EmployeeForm: React.FC = () => {
             </div>
 
             <div className="form-group">
-              <label htmlFor="last_name" className="form-label">Last Name *</label>
-              <input id="last_name" className="form-input"
+              <label htmlFor="ep-last-name" className="form-label">Last Name *</label>
+              <input id="ep-last-name" className="form-input"
                 placeholder="e.g. Okafor"
                 value={form.last_name}
                 onChange={e => setForm(p => ({ ...p, last_name: e.target.value }))} />
@@ -136,8 +151,8 @@ export const EmployeeForm: React.FC = () => {
           </div>
 
           <div className="form-group">
-            <label htmlFor="emp-email" className="form-label">Company Email *</label>
-            <input id="emp-email" type="email" className="form-input"
+            <label htmlFor="ep-email" className="form-label">Company Email *</label>
+            <input id="ep-email" type="email" className="form-input"
               placeholder="employee@qucoon.com"
               value={form.email}
               onChange={e => setForm(p => ({ ...p, email: e.target.value }))} />
@@ -146,8 +161,8 @@ export const EmployeeForm: React.FC = () => {
 
           <div className="form-grid-2">
             <div className="form-group">
-              <label htmlFor="emp-dept" className="form-label">Department *</label>
-              <select id="emp-dept" className="form-select"
+              <label htmlFor="ep-dept" className="form-label">Department *</label>
+              <select id="ep-dept" className="form-select"
                 value={form.department}
                 onChange={e => setForm(p => ({ ...p, department: e.target.value }))}>
                 <option value="">Select department…</option>
@@ -157,8 +172,8 @@ export const EmployeeForm: React.FC = () => {
             </div>
 
             <div className="form-group">
-              <label htmlFor="job_title" className="form-label">Job Title *</label>
-              <input id="job_title" className="form-input"
+              <label htmlFor="ep-job-title" className="form-label">Job Title *</label>
+              <input id="ep-job-title" className="form-input"
                 placeholder="e.g. Senior Cloud Engineer"
                 value={form.job_title}
                 onChange={e => setForm(p => ({ ...p, job_title: e.target.value }))} />
@@ -168,8 +183,8 @@ export const EmployeeForm: React.FC = () => {
 
           <div className="form-grid-2">
             <div className="form-group">
-              <label htmlFor="entity" className="form-label">Entity</label>
-              <select id="entity" className="form-select"
+              <label htmlFor="ep-entity" className="form-label">Entity</label>
+              <select id="ep-entity" className="form-select"
                 value={form.entity}
                 onChange={e => setForm(p => ({ ...p, entity: e.target.value }))}>
                 {ENTITIES.map(d => <option key={d} value={d}>{d}</option>)}
@@ -177,8 +192,8 @@ export const EmployeeForm: React.FC = () => {
             </div>
 
             <div className="form-group">
-              <label htmlFor="location" className="form-label">Location</label>
-              <select id="location" className="form-select"
+              <label htmlFor="ep-location" className="form-label">Location</label>
+              <select id="ep-location" className="form-select"
                 value={form.location}
                 onChange={e => setForm(p => ({ ...p, location: e.target.value }))}>
                 {LOCATIONS.map(d => <option key={d} value={d}>{d}</option>)}
@@ -188,8 +203,8 @@ export const EmployeeForm: React.FC = () => {
 
           <div className="form-grid-2">
             <div className="form-group">
-              <label htmlFor="staff_type" className="form-label">Staff Type</label>
-              <select id="staff_type" className="form-select"
+              <label htmlFor="ep-staff-type" className="form-label">Staff Type</label>
+              <select id="ep-staff-type" className="form-select"
                 value={form.staff_type}
                 onChange={e => setForm(p => ({ ...p, staff_type: e.target.value }))}>
                 {STAFF_TYPES.map(d => <option key={d} value={d}>{d}</option>)}
@@ -197,8 +212,8 @@ export const EmployeeForm: React.FC = () => {
             </div>
 
             <div className="form-group">
-              <label htmlFor="seniority" className="form-label">Seniority</label>
-              <select id="seniority" className="form-select"
+              <label htmlFor="ep-seniority" className="form-label">Seniority</label>
+              <select id="ep-seniority" className="form-select"
                 value={form.seniority}
                 onChange={e => setForm(p => ({ ...p, seniority: e.target.value }))}>
                 {SENIORITY_LEVELS.map(d => <option key={d} value={d}>{d}</option>)}
@@ -207,14 +222,14 @@ export const EmployeeForm: React.FC = () => {
           </div>
 
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 16 }}>
-            <button type="button" className="btn btn-ghost" onClick={() => navigate(-1)}>Cancel</button>
-            <button id="save-employee-btn" type="submit" className="btn btn-primary" disabled={saving}>
+            <button type="button" className="btn btn-ghost" onClick={onClose}>Cancel</button>
+            <button id="save-employee-panel-btn" type="submit" className="btn btn-primary" disabled={saving}>
               {saving ? <span className="spinner" style={{ width: 14, height: 14 }} /> : <Save size={14} />}
               {saving ? 'Saving…' : isEdit ? 'Update Employee' : 'Add Employee'}
             </button>
           </div>
         </form>
-      </div>
-    </div>
+      )}
+    </SlidePanel>
   );
 };
