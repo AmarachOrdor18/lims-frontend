@@ -1703,3 +1703,306 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
   }
 }
 
+/* ============================================================
+   LIMS — Mobile Responsive + Search Dropdown Fix
+   Add this to your main CSS file (e.g. index.css or App.css)
+   ============================================================ */
+
+/* ── Search dropdown fix ──────────────────────────────────── */
+.search-dropdown-wrapper {
+  position: relative;
+  width: 100%;
+  max-width: 320px;
+}
+
+.search-dropdown-input {
+  width: 100%;
+  padding: 8px 36px 8px 12px; /* right padding for the icon */
+  background: var(--bg-surface);
+  border: 1px solid var(--border-default);
+  border-radius: 6px;
+  color: var(--text-primary);
+  font-size: 13px;
+}
+
+.search-dropdown-icon {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+  color: var(--text-muted);
+}
+
+.search-dropdown-list {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  width: 100%;
+  min-width: 220px;
+  max-height: 240px;          /* fixed height */
+  overflow-y: auto;           /* scrollable */
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-default);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+  z-index: 100;
+}
+
+.search-dropdown-item {
+  padding: 10px 14px;
+  font-size: 13px;
+  cursor: pointer;
+  color: var(--text-primary);
+  transition: background 0.1s;
+}
+
+.search-dropdown-item:hover {
+  background: var(--bg-hover);
+}
+
+/* ── Mobile responsive base ───────────────────────────────── */
+@media (max-width: 768px) {
+
+  /* Sidebar hidden on mobile — show hamburger */
+  .sidebar {
+    position: fixed;
+    left: -280px;
+    top: 0;
+    height: 100vh;
+    width: 260px;
+    z-index: 200;
+    transition: left 0.25s ease;
+    background: var(--bg-surface);
+    border-right: 1px solid var(--border-default);
+  }
+
+  .sidebar.open {
+    left: 0;
+  }
+
+  .sidebar-overlay {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 199;
+  }
+
+  /* Main content takes full width */
+  .main-content {
+    margin-left: 0 !important;
+    padding: 12px !important;
+  }
+
+  /* Page headers stack vertically */
+  .page-header {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 12px !important;
+  }
+
+  .detail-buttons-group {
+    flex-wrap: wrap;
+    gap: 8px;
+    width: 100%;
+  }
+
+  .detail-buttons-group .btn {
+    flex: 1;
+    min-width: 120px;
+    justify-content: center;
+  }
+
+  /* Dashboard grid stacks */
+  .dashboard-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .dashboard-stat-grid {
+    grid-template-columns: 1fr 1fr !important;
+  }
+
+  /* Detail cols stack */
+  .detail-cols-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Tables hidden on mobile — show cards */
+  .desktop-table-wrap {
+    display: none !important;
+  }
+
+  .mobile-card-list {
+    display: flex !important;
+    flex-direction: column;
+    gap: 10px;
+    padding: 12px;
+  }
+
+  .mobile-data-card {
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-default);
+    border-radius: 10px;
+    padding: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .mobile-data-card-title {
+    font-weight: 700;
+    font-size: 14px;
+    font-family: monospace;
+    color: var(--text-primary);
+  }
+
+  .mobile-data-card-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 12px;
+    color: var(--text-secondary);
+  }
+
+  /* Filter panel full width */
+  .filter-panel {
+    width: 100% !important;
+    right: 0 !important;
+    left: 0 !important;
+    border-radius: 0 0 8px 8px !important;
+  }
+
+  /* Dashboard welcome */
+  .dashboard-welcome {
+    flex-direction: column !important;
+    gap: 12px !important;
+  }
+
+  .dashboard-header-right {
+    width: 100%;
+    display: flex;
+    gap: 8px;
+  }
+
+  .dash-action-btn {
+    flex: 1;
+    justify-content: center;
+  }
+
+  /* Modal full screen on mobile */
+  .modal-container {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    border-radius: 16px 16px 0 0 !important;
+    position: fixed !important;
+    bottom: 0 !important;
+    left: 0 !important;
+  }
+
+  /* Recent assignment rows wrap */
+  .recent-assignment-row {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  /* Slide panels full screen */
+  .slide-panel {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  /* Stat cards smaller text */
+  .stat-value {
+    font-size: 24px !important;
+  }
+
+  /* Search full width */
+  .search-dropdown-wrapper {
+    max-width: 100%;
+  }
+
+  /* Topbar */
+  .topbar {
+    padding: 10px 12px !important;
+  }
+
+  .topbar-right {
+    gap: 8px !important;
+  }
+
+  /* Pagination compact */
+  .pagination-label {
+    display: none;
+  }
+}
+
+@media (max-width: 480px) {
+  .dashboard-stat-grid {
+    grid-template-columns: 1fr 1fr !important;
+  }
+
+  .stat-card {
+    padding: 14px !important;
+  }
+
+  h1 {
+    font-size: 18px !important;
+  }
+}
+
+/* ── Desktop: hide mobile cards ───────────────────────────── */
+@media (min-width: 769px) {
+  .mobile-card-list {
+    display: none !important;
+  }
+
+  .desktop-table-wrap {
+    display: block !important;
+  }
+
+  .sidebar-overlay {
+    display: none !important;
+  }
+}
+
+/* ── Error states ─────────────────────────────────────────── */
+.error-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  background: rgba(239, 68, 68, 0.08);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: 8px;
+  color: #ef4444;
+  font-size: 13px;
+  margin-bottom: 16px;
+}
+
+.error-banner svg {
+  flex-shrink: 0;
+}
+
+.error-page {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 80px 20px;
+  text-align: center;
+  gap: 12px;
+}
+
+.error-page h2 {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.error-page p {
+  font-size: 13px;
+  color: var(--text-muted);
+  max-width: 320px;
+}
