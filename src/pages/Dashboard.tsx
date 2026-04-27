@@ -35,7 +35,7 @@ export const Dashboard: React.FC = () => {
       const [summaryRes, alertsRes, recentRes] = await Promise.all([
         api.get('/dashboard/summary'),
         api.get('/dashboard/alerts'),
-        api.get('/dashboard/recent')
+        api.get('/dashboard/recent'),
       ]);
       if (summaryRes.data) setSummary(summaryRes.data.data || summaryRes.data);
       if (alertsRes.data && Array.isArray(alertsRes.data.data)) {
@@ -43,7 +43,6 @@ export const Dashboard: React.FC = () => {
       } else if (Array.isArray(alertsRes.data)) {
         setAlerts(alertsRes.data);
       }
-
       if (recentRes.data && Array.isArray(recentRes.data.data)) {
         setRecent(recentRes.data.data);
       } else if (Array.isArray(recentRes.data)) {
@@ -63,15 +62,15 @@ export const Dashboard: React.FC = () => {
 
   const handleResolveIssue = async (alert: any) => {
     try {
-      await api.post('/dashboard/resolve-alert', { 
-        laptop_id: alert.laptop_id, 
-        employee_id: alert.employee_id 
+      await api.post('/dashboard/resolve-alert', {
+        laptop_id: alert.laptop_id,
+        employee_id: alert.employee_id,
       });
-      toast.success('Resolution reminder sent to ' + alert.employee.first_name);
-      navigate(`/laptops/${alert.laptop.id}`);
+      toast.success('Resolution reminder sent to ' + alert.employee_name);
+      navigate(`/laptops/${alert.laptop_id}`);
     } catch (err) {
       toast.error('Failed to send resolution alert');
-      navigate(`/laptops/${alert.laptop.id}`);
+      navigate(`/laptops/${alert.laptop_id}`);
     }
   };
 
@@ -90,7 +89,10 @@ export const Dashboard: React.FC = () => {
           <button className="dash-action-btn" onClick={() => navigate('/laptops/new')}>
             <Plus size={14} /> Register Device
           </button>
-          <button className="dash-action-btn dash-action-btn--secondary" onClick={() => navigate('/laptops?status=AVAILABLE&condition=FUNCTIONAL')}>
+          <button
+            className="dash-action-btn dash-action-btn--secondary"
+            onClick={() => navigate('/laptops?status=AVAILABLE&condition=FUNCTIONAL')}
+          >
             <ClipboardList size={14} /> Assign Device
           </button>
         </div>
@@ -158,7 +160,8 @@ export const Dashboard: React.FC = () => {
                     <div className="alert-body">
                       <div className="alert-headline">Device Retrieval Required</div>
                       <div className="alert-detail">
-                        <strong>{alert.employee.first_name} {alert.employee.last_name}</strong> ({alert.employee.status}) still holds <strong>{alert.laptop.brand} {alert.laptop.model}</strong>.
+                        <strong>{alert.employee_name}</strong> ({alert.employee_status}) still holds{' '}
+                        <strong>{alert.brand} {alert.model}</strong>.
                       </div>
                       <button
                         className="btn btn-primary btn-sm"
@@ -181,37 +184,49 @@ export const Dashboard: React.FC = () => {
               <History size={16} className="text-info" />
               <h2>Recent Assignments</h2>
             </div>
-            <button className="btn btn-ghost btn-sm" style={{ fontSize: 12 }} onClick={() => navigate('/assignments')}>
+            <button
+              className="btn btn-ghost btn-sm"
+              style={{ fontSize: 12 }}
+              onClick={() => navigate('/assignments')}
+            >
               View All
             </button>
           </div>
 
           <div className="card" style={{ padding: '0 16px' }}>
             <div className="recent-assignments">
-              {recent.map((item) => (
-                <div
-                  key={item.id}
-                  className="recent-assignment-row"
-                  onClick={() => navigate(`/laptops/${item.laptop_id}`)}
-                >
-                  <div className="ra-icon">
-                    <Monitor size={16} />
-                  </div>
-                  <div className="recent-assignment-asset">
-                    <div>
-                      <div className="ra-tag">{item.laptop?.asset_tag || `${item.laptop?.brand || ''} ${item.laptop?.model || ''}`}</div>
-                      <div className="ra-device">{item.laptop?.brand} {item.laptop?.model}</div>
-                    </div>
-                  </div>
-                  <div className="ra-employee">
-                    <div className="ra-user-avatar">
-                      {item.employee?.first_name?.charAt(0)}
-                    </div>
-                    <div className="ra-employee-name">{item.employee?.first_name} {item.employee?.last_name}</div>
-                  </div>
-                  <div className="ra-date">{format(new Date(item.assigned_date), 'MMM d')}</div>
+              {recent.length === 0 ? (
+                <div style={{ padding: '32px 0', textAlign: 'center', color: 'var(--text-muted)', fontSize: 13 }}>
+                  No recent assignments found.
                 </div>
-              ))}
+              ) : (
+                recent.map((item) => (
+                  <div
+                    key={item.id}
+                    className="recent-assignment-row"
+                    onClick={() => navigate(`/laptops/${item.laptop_id}`)}
+                  >
+                    <div className="ra-icon">
+                      <Monitor size={16} />
+                    </div>
+                    <div className="recent-assignment-asset">
+                      <div>
+                        <div className="ra-tag">{item.asset_tag || `${item.brand || ''} ${item.model || ''}`}</div>
+                        <div className="ra-device">{item.brand} {item.model}</div>
+                      </div>
+                    </div>
+                    <div className="ra-employee">
+                      <div className="ra-user-avatar">
+                        {item.employee_name?.charAt(0) ?? '?'}
+                      </div>
+                      <div className="ra-employee-name">{item.employee_name}</div>
+                    </div>
+                    <div className="ra-date">
+                      {item.assigned_date ? format(new Date(item.assigned_date), 'MMM d') : '—'}
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
           </div>
         </div>
@@ -228,10 +243,10 @@ export const Dashboard: React.FC = () => {
           <div className="card" style={{ padding: '24px' }}>
             <div className="breakdown-list">
               {[
-                { label: 'Assigned', value: summary?.assigned || 0, color: '#3b82f6' },
+                { label: 'Assigned',  value: summary?.assigned  || 0, color: '#3b82f6' },
                 { label: 'Available', value: summary?.available || 0, color: '#22c55e' },
-                { label: 'Faulty', value: summary?.faulty || 0, color: '#f59e0b' },
-                { label: 'Retired', value: summary?.retired || 0, color: 'var(--text-muted)' },
+                { label: 'Faulty',    value: summary?.faulty    || 0, color: '#f59e0b' },
+                { label: 'Retired',   value: summary?.retired   || 0, color: 'var(--text-muted)' },
               ].map((item) => {
                 const percent = getPercentage(item.value);
                 return (
