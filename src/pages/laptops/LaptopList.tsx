@@ -328,7 +328,7 @@ export const LaptopList: React.FC = () => {
 
           <CSVImporter
             onImport={handleImport}
-            templateHeaders={['Brand','Model','Serial Number','Purchase Date','Condition','Status']}
+            sampleHeaders={['Brand','Model','Serial Number','Purchase Date','Condition','Status']}
             label="Import CSV"
           />
 
