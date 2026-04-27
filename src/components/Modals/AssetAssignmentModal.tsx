@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { AlertTriangle } from 'lucide-react';
+import { AlertTriangle, CheckCircle } from 'lucide-react';
 import { Modal } from '../UI/Modal';
+import { ConfirmModal } from '../UI/ConfirmModal';
 import { api } from '../../api';
 import { toast } from 'sonner';
 import type { Laptop, Employee } from '../../types';
@@ -13,72 +14,105 @@ interface AssetAssignmentModalProps {
 }
 
 export const AssetAssignmentModal: React.FC<AssetAssignmentModalProps> = ({
-  isOpen,
-  onClose,
-  laptop,
-  onSuccess
+  isOpen, onClose, laptop, onSuccess,
 }) => {
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [employeeId, setEmployeeId] = useState('');
   const [notes, setNotes] = useState('');
   const [search, setSearch] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState('');
+
+  // Warning state — when selected employee already has a laptop
+  const [showDoubleAssignWarning, setShowDoubleAssignWarning] = useState(false);
+  const [selectedEmpHasLaptop, setSelectedEmpHasLaptop] = useState<string | null>(null);
 
   useEffect(() => {
     if (isOpen) {
       setEmployeeId('');
       setNotes('');
       setSearch('');
+      setError('');
+      setSelectedEmpHasLaptop(null);
       fetchEmployees();
     }
   }, [isOpen]);
 
   const fetchEmployees = async () => {
     try {
-      const res = await api.get('/employees?status=ACTIVE');
+      const res = await api.get('/employees?status=ACTIVE&limit=100');
       setEmployees(Array.isArray(res.data) ? res.data : []);
-    } catch (e) {
-      console.error('Failed to fetch employees', e);
+    } catch {
+      setError('Failed to load employees. Please try again.');
     }
   };
 
-  const handleConfirmAssignment = async () => {
+  // When employee is selected, check if they already have a laptop
+  const handleSelectEmployee = (id: string) => {
+    setEmployeeId(id);
+    setError('');
+    if (!id) { setSelectedEmpHasLaptop(null); return; }
+    const emp = employees.find(e => e.id === id) as any;
+    if (emp?.assigned_asset_tag) {
+      setSelectedEmpHasLaptop(emp.assigned_asset_tag);
+    } else {
+      setSelectedEmpHasLaptop(null);
+    }
+  };
+
+  const handleSubmit = () => {
     if (!laptop || !employeeId) {
-      toast.error('Please select an employee');
+      setError('Please select an employee to assign this laptop to.');
       return;
     }
     if (laptop.status === 'RETIRED') {
-      toast.error('Retired laptops cannot be assigned');
+      setError('Retired laptops cannot be assigned.');
       return;
     }
-    
+    // If employee already has a laptop, show warning first
+    if (selectedEmpHasLaptop) {
+      setShowDoubleAssignWarning(true);
+      return;
+    }
+    processAssignment();
+  };
+
+  const processAssignment = async () => {
+    if (!laptop || !employeeId) return;
     try {
       setIsSubmitting(true);
-      const payload = {
-        laptop_id: laptop.id,
-        notes,
-        assigned_date: new Date().toISOString()
-      };
+      setError('');
+
+      const payload = { notes, assigned_date: new Date().toISOString() };
 
       if (laptop.status === 'ASSIGNED') {
-        // Reassign
         await api.post('/assignments/reassign', {
           ...payload,
-          new_employee_id: employeeId
+          laptop_id: laptop.id,
+          new_employee_id: employeeId,
         });
+        toast.success('Laptop reassigned successfully');
       } else {
-        // New Assignment
         await api.post('/assignments', {
           ...payload,
-          employee_id: employeeId
+          laptop_id: laptop.id,
+          employee_id: employeeId,
         });
-        await api.patch(`/laptops/${laptop.id}/status`, { status: 'ASSIGNED' });
+        toast.success('Laptop assigned successfully');
       }
-      toast.success(isReassign ? 'Laptop reassigned successfully' : 'Laptop assigned successfully');
+
       onSuccess();
       onClose();
-    } catch (e) {
-      toast.error('Failed to process assignment');
+    } catch (e: any) {
+      const msg = (() => {
+        try {
+          const parsed = typeof e.message === 'string' ? JSON.parse(e.message) : e.message;
+          return parsed?.error ?? e.message;
+        } catch {
+          return e.message ?? 'Failed to process assignment. Please try again.';
+        }
+      })();
+      setError(msg);
     } finally {
       setIsSubmitting(false);
     }
@@ -91,109 +125,168 @@ export const AssetAssignmentModal: React.FC<AssetAssignmentModalProps> = ({
   });
 
   const isReassign = laptop?.status === 'ASSIGNED';
-  
-  // Find current assignee name for reassign warning
-  const currentAssigneeName = (() => {
-    if (!isReassign || !laptop) return null;
-    const activeAsn = (laptop as any).assignments?.find((a: any) => !a.returned_date);
-    if (!activeAsn) return 'a user';
-    // This requires the employee to be populated in the assignment, or we use a fallback
-    return activeAsn.employee ? `${activeAsn.employee.first_name} ${activeAsn.employee.last_name}` : 'the current user';
-  })();
+  const selectedEmp = employees.find(e => e.id === employeeId);
 
   if (!isOpen || !laptop) return null;
 
   return (
-    <Modal
-      isOpen={isOpen}
-      onClose={onClose}
-      title={isReassign ? 'Reassign Laptop' : 'Assign Laptop'}
-      size="md"
-    >
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', marginTop: '8px' }}>
-        
-        <div style={{ background: 'var(--bg-muted)', border: '1px solid var(--border-default)', borderRadius: '10px', padding: '16px 20px' }}>
-          <p style={{ fontSize: '14px', fontWeight: 600, fontFamily: 'var(--font-mono)', marginBottom: '4px', color: 'var(--text-primary)' }}>{laptop.asset_tag}</p>
-          <p style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>{laptop.brand} {laptop.model}</p>
-        </div>
+    <>
+      <Modal
+        isOpen={isOpen}
+        onClose={onClose}
+        title={isReassign ? 'Reassign Laptop' : 'Assign Laptop'}
+        size="md"
+      >
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16, marginTop: 8 }}>
 
-        {laptop.status === 'RETIRED' && (
-          <div style={{ display: 'flex', gap: '12px', background: 'rgba(239, 68, 68, 0.08)', border: '1px solid rgba(239, 68, 68, 0.3)', borderRadius: '10px', padding: '14px 16px', color: 'var(--danger)', fontSize: '13px', lineHeight: '1.5' }}>
-            <AlertTriangle size={16} style={{ flexShrink: 0, marginTop: '2px' }} />
-            <span>This laptop is retired and cannot be assigned or reassigned.</span>
+          {/* Laptop Info */}
+          <div style={{
+            background: 'var(--bg-elevated)',
+            border: '1px solid var(--border-default)',
+            borderRadius: 10,
+            padding: '14px 16px',
+          }}>
+            <p style={{ fontSize: 14, fontWeight: 700, fontFamily: 'monospace', marginBottom: 2 }}>
+              {laptop.asset_tag}
+            </p>
+            <p style={{ fontSize: 13, color: 'var(--text-secondary)' }}>
+              {laptop.brand} {laptop.model} · {laptop.serial_number}
+            </p>
           </div>
-        )}
 
-        {isReassign && (
-          <div style={{ display: 'flex', gap: '12px', background: 'rgba(245, 158, 11, 0.08)', border: '1px solid rgba(245, 158, 11, 0.3)', borderRadius: '10px', padding: '14px 16px', color: '#f59e0b', fontSize: '13px', lineHeight: '1.5' }}>
-            <AlertTriangle size={16} style={{ flexShrink: 0, marginTop: '2px' }} />
-            <span>Currently assigned to <strong style={{ fontWeight: 600 }}>{currentAssigneeName}</strong>. Reassigning will automatically return this device.</span>
+          {/* Retired warning */}
+          {laptop.status === 'RETIRED' && (
+            <div className="error-alert error">
+              <AlertTriangle size={15} style={{ flexShrink: 0, marginTop: 1 }} />
+              <div>
+                <div className="error-alert-title">Cannot Assign</div>
+                <div className="error-alert-body">This laptop is retired and cannot be assigned or reassigned.</div>
+              </div>
+            </div>
+          )}
+
+          {/* Reassign warning */}
+          {isReassign && (
+            <div className="error-alert warning">
+              <AlertTriangle size={15} style={{ flexShrink: 0, marginTop: 1 }} />
+              <div>
+                <div className="error-alert-title">Currently Assigned</div>
+                <div className="error-alert-body">
+                  This laptop is assigned to <strong>{(laptop as any).assigned_to_name ?? 'someone'}</strong>.
+                  Reassigning will automatically close the current assignment.
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Search */}
+          <div className="form-group">
+            <label className="form-label">Search Employee</label>
+            <input
+              type="text"
+              className="form-input"
+              placeholder="Name, email or department…"
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              style={{ width: '100%', marginTop: 6 }}
+            />
           </div>
-        )}
 
-        <div className="form-group">
-          <label className="form-label" style={{ marginBottom: '8px' }}>Search Employee</label>
-          <input
-            type="text"
-            className="form-input"
-            placeholder="Name, email, or department…"
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            style={{ width: '100%' }}
-          />
-        </div>
+          {/* Select Employee */}
+          <div className="form-group">
+            <label className="form-label">Select Employee *</label>
+            <select
+              className="form-input"
+              value={employeeId}
+              onChange={e => handleSelectEmployee(e.target.value)}
+              style={{ width: '100%', marginTop: 6 }}
+              disabled={laptop.status === 'RETIRED'}
+            >
+              <option value="">Choose an employee…</option>
+              {filteredEmps.map(e => (
+                <option key={e.id} value={e.id}>
+                  {e.first_name} {e.last_name} · {e.department || 'No dept'}
+                  {(e as any).assigned_asset_tag ? ` · has ${(e as any).assigned_asset_tag}` : ''}
+                </option>
+              ))}
+            </select>
+          </div>
 
-        <div className="form-group">
-          <label className="form-label" style={{ marginBottom: '8px' }}>Select Employee *</label>
-          <select 
-            className="form-input" 
-            value={employeeId} 
-            onChange={e => setEmployeeId(e.target.value)}
-            style={{ width: '100%', appearance: 'auto', paddingRight: '12px' }}
-          >
-            <option value="" disabled>Choose an employee…</option>
-            {filteredEmps.map(e => (
-              <option key={e.id} value={e.id}>
-                {e.first_name} {e.last_name} · {e.department || 'No dept'}
-              </option>
-            ))}
-          </select>
-        </div>
+          {/* Warning: selected employee already has a laptop */}
+          {selectedEmpHasLaptop && (
+            <div className="error-alert warning">
+              <AlertTriangle size={15} style={{ flexShrink: 0, marginTop: 1 }} />
+              <div>
+                <div className="error-alert-title">Employee Already Has a Laptop</div>
+                <div className="error-alert-body">
+                  <strong>{selectedEmp?.first_name} {selectedEmp?.last_name}</strong> currently has{' '}
+                  <strong>{selectedEmpHasLaptop}</strong> assigned.
+                  Proceeding will not return their current laptop automatically — please handle that separately.
+                </div>
+              </div>
+            </div>
+          )}
 
-        <div className="form-group">
-          <label className="form-label" style={{ marginBottom: '8px' }}>Notes</label>
-          <textarea
-            className="form-input"
-            placeholder="Optional notes…"
-            value={notes}
-            onChange={e => setNotes(e.target.value)}
-            style={{ width: '100%', height: '80px', padding: '12px', resize: 'vertical' }}
-          />
-        </div>
+          {/* Notes */}
+          <div className="form-group">
+            <label className="form-label">Notes (optional)</label>
+            <textarea
+              className="form-input"
+              placeholder="Add any notes about this assignment…"
+              value={notes}
+              onChange={e => setNotes(e.target.value)}
+              style={{ width: '100%', height: 80, resize: 'vertical', marginTop: 6 }}
+            />
+          </div>
 
-        <div style={{ display: 'flex', gap: '12px', marginTop: '4px' }}>
-          <button
-            className="btn btn-secondary flex-1"
-            onClick={onClose}
-            disabled={isSubmitting}
-            style={{ justifyContent: 'center' }}
-          >
-            Cancel
-          </button>
-          <button
-            className="btn btn-primary flex-1"
-            onClick={handleConfirmAssignment}
-            disabled={isSubmitting || !employeeId || laptop.status === 'RETIRED'}
-            style={{ justifyContent: 'center' }}
-          >
-            {isSubmitting ? (
-              <span className="spinner" style={{ width: 16, height: 16 }} />
-            ) : (
-              isReassign ? 'Reassign' : 'Assign'
-            )}
-          </button>
+          {/* Error */}
+          {error && (
+            <div className="error-alert error">
+              <AlertTriangle size={15} style={{ flexShrink: 0, marginTop: 1 }} />
+              <div>
+                <div className="error-alert-title">Assignment Failed</div>
+                <div className="error-alert-body">{error}</div>
+              </div>
+            </div>
+          )}
+
+          {/* Actions */}
+          <div style={{ display: 'flex', gap: 10, marginTop: 4 }}>
+            <button
+              className="btn btn-secondary"
+              style={{ flex: 1, justifyContent: 'center' }}
+              onClick={onClose}
+              disabled={isSubmitting}
+            >
+              Cancel
+            </button>
+            <button
+              className="btn btn-primary"
+              style={{ flex: 1, justifyContent: 'center' }}
+              onClick={handleSubmit}
+              disabled={isSubmitting || !employeeId || laptop.status === 'RETIRED'}
+            >
+              {isSubmitting
+                ? <span className="spinner" style={{ width: 16, height: 16 }} />
+                : <><CheckCircle size={14} /> {isReassign ? 'Reassign' : 'Assign'}</>
+              }
+            </button>
+          </div>
         </div>
-      </div>
-    </Modal>
+      </Modal>
+
+      {/* Double-assign confirmation */}
+      <ConfirmModal
+        isOpen={showDoubleAssignWarning}
+        onClose={() => setShowDoubleAssignWarning(false)}
+        onConfirm={() => { setShowDoubleAssignWarning(false); processAssignment(); }}
+        title="Employee Already Has a Laptop"
+        message={`${selectedEmp?.first_name} ${selectedEmp?.last_name} already has ${selectedEmpHasLaptop} assigned. Are you sure you want to assign another laptop to them?`}
+        confirmLabel="Yes, Assign Anyway"
+        cancelLabel="Cancel"
+        variant="warning"
+        isLoading={isSubmitting}
+      />
+    </>
   );
 };
