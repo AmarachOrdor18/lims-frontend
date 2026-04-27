@@ -184,7 +184,6 @@ export const LaptopList: React.FC = () => {
   const laptops: Laptop[] = response?.data  ?? [];
   const total:   number   = response?.total ?? 0;
 
-
   // ── CSV export helper ──────────────────────────────────────────────────────
   function downloadCSV(filename: string, rows: Laptop[]) {
     if (!rows.length) return;
@@ -254,16 +253,9 @@ export const LaptopList: React.FC = () => {
   const pageFrom   = total === 0 ? 0 : (page - 1) * 20 + 1;
   const pageTo     = Math.min(total, page * 20);
 
-  // ── Get assigned employee name ─────────────────────────────────────────────
-  const getAssigneeName = (lp: Laptop): string => {
-    const asn = (lp as any).assignments?.find((a: any) => !a.returned_date);
-    if (asn?.employee) {
-      return `${asn.employee.first_name} ${asn.employee.last_name}`;
-    }
-    if (lp.current_assignee) {
-      return `${lp.current_assignee.first_name} ${lp.current_assignee.last_name}`;
-    }
-    return '—';
+  // ── Get assigned employee name — backend returns this flat ─────────────────
+  const getAssigneeName = (lp: any): string => {
+    return lp.assigned_to_name ?? '—';
   };
 
   // ── Inline style objects ───────────────────────────────────────────────────
@@ -298,81 +290,51 @@ export const LaptopList: React.FC = () => {
       width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center',
       background: 'var(--bg-elevated)', border: `1px solid var(--border-default)`, borderRadius: 5,
       color: 'var(--text-secondary)', cursor: disabled ? 'not-allowed' : 'pointer',
-      opacity: disabled ? .35 : 1,
+      opacity: disabled ? 0.35 : 1,
+    }),
+    expItem: (): React.CSSProperties => ({
+      display: 'block', width: '100%', padding: '9px 14px', textAlign: 'left',
+      background: 'none', border: 'none', color: 'var(--text-primary)', fontSize: 13, cursor: 'pointer',
     }),
   };
 
-  // ── Render ─────────────────────────────────────────────────────────────────
   return (
     <div style={{ background: 'var(--bg-base)', minHeight: '100vh', color: 'var(--text-primary)', padding: '12px 10px' }}>
 
-      {/* ── PAGE HEADER ──────────────────────────────────────────────────── */}
+      {/* PAGE HEADER */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20 }}>
         <div>
-          <h1 style={{ fontSize: 22, fontWeight: 700, margin: 0 }}>Assets</h1>
-          <p style={{ fontSize: 13, color: 'var(--text-muted)', marginTop: 3 }}>{total} devices in inventory</p>
+          <h1 style={{ fontSize: 22, fontWeight: 700, margin: 0 }}>Inventory</h1>
+          <p style={{ fontSize: 13, color: 'var(--text-muted)', marginTop: 3 }}>{total} devices registered</p>
         </div>
-
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-          {/* Refresh */}
-          <button type="button" style={S.iconBtn()} title="Refresh" onClick={() => refetch()}>
-            <RefreshCw size={14} />
-          </button>
-
-          {/* Filter toggle */}
+          <button type="button" style={S.iconBtn()} title="Refresh" onClick={() => refetch()}><RefreshCw size={14} /></button>
           <button type="button" style={S.iconBtn(filterOpen)} title="Filters"
-            onClick={() => { setFilterOpen(o => !o); setPendingFilters({ ...filters }); }}>
+            onClick={() => { setPendingFilters(filters); setFilterOpen(o => !o); }}>
             <SlidersHorizontal size={14} />
           </button>
 
-          {/* Export */}
-          <div style={{ position: 'relative' }} ref={exportRef}>
-            <button type="button" style={S.iconBtn(exportOpen)} title="Export"
-              onClick={() => setExportOpen(o => !o)}>
+          {/* Export dropdown */}
+          <div ref={exportRef} style={{ position: 'relative' }}>
+            <button type="button" style={S.iconBtn()} title="Export" onClick={() => setExportOpen(o => !o)}>
               <Download size={14} />
             </button>
             {exportOpen && (
-                <div style={{
-                  position: 'absolute', right: 0, top: 'calc(100% + 4px)',
-                  background: 'var(--bg-surface)', border: `1px solid var(--border-default)`,
-                  borderRadius: 8, minWidth: 220, zIndex: 50, overflow: 'hidden',
-                }}>
-                  <div style={{ padding: '8px 14px 4px', fontSize: 11, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '.5px' }}>Current Page</div>
-                  <button type="button" style={{ display: 'block', width: '100%', padding: '9px 14px', textAlign: 'left', background: 'none', border: 'none', color: 'var(--text-primary)', fontSize: 13, cursor: 'pointer' }}
-                    onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg-hover)')}
-                    onMouseLeave={e => (e.currentTarget.style.background = 'none')}
-                    onClick={() => { downloadCSV('assets-page.csv', laptops); setExportOpen(false); }}>Export as CSV</button>
-                  <div style={{ height: 1, background: 'var(--border-default)', margin: '2px 0' }} />
-                  <div style={{ padding: '8px 14px 4px', fontSize: 11, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '.5px' }}>All Records</div>
-                  <button type="button" style={{ display: 'block', width: '100%', padding: '9px 14px', textAlign: 'left', background: 'none', border: 'none', color: 'var(--text-primary)', fontSize: 13, cursor: 'pointer' }}
-                    onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg-hover)')}
-                    onMouseLeave={e => (e.currentTarget.style.background = 'none')}
-                    onClick={() => { downloadCSV('assets-all.csv', laptops); setExportOpen(false); }}>Export All — CSV</button>
-                </div>
+              <div style={{ position: 'absolute', right: 0, top: 38, background: 'var(--bg-elevated)', border: `1px solid var(--border-default)`, borderRadius: 8, minWidth: 160, zIndex: 50, boxShadow: '0 4px 16px rgba(0,0,0,0.3)' }}>
+                <button style={S.expItem()} onClick={() => { downloadCSV('laptops.csv', laptops); setExportOpen(false); }}>Export Current Page</button>
+              </div>
             )}
           </div>
 
-          {/* CSV importer */}
           <CSVImporter
-            title="Laptops"
             onImport={handleImport}
-            sampleHeaders={['Brand', 'Model', 'Serial Number', 'Purchase Date', 'Condition', 'Status']}
-            sampleRows={[
-              ['Dell', 'Latitude 5540', 'SN-DELL-001', '2023-10-15', 'Functional', 'Available'],
-              ['Apple', 'MacBook Pro M3', 'SN-APPLE-X44', '2024-01-20', 'Functional', 'Assigned'],
-            ]}
+            templateHeaders={['Brand','Model','Serial Number','Purchase Date','Condition','Status']}
+            label="Import CSV"
           />
 
-          {/* Add laptop — opens form panel overlay */}
           <button
-            id="add-laptop-btn"
             type="button"
-            style={{
-              display: 'flex', alignItems: 'center', gap: 6,
-              padding: '0 14px', height: 34,
-              background: 'var(--accent-green)', border: 'none', borderRadius: 6,
-              color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer',
-            }}
+            style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px', background: 'var(--accent-green)', color: '#000', border: 'none', borderRadius: 6, fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
             onClick={() => { setFormLaptopId(null); setFormPanelOpen(true); }}
           >
             <Plus size={14} /> Add Laptop
@@ -380,98 +342,66 @@ export const LaptopList: React.FC = () => {
         </div>
       </div>
 
-      {/* ── FILTER PANEL ─────────────────────────────────────────────────── */}
+      {/* FILTER PANEL */}
       {filterOpen && (
-        <div style={{ background: 'var(--bg-elevated)', border: `1px solid var(--border-default)`, borderRadius: 8, marginBottom: 16, overflow: 'hidden' }}>
-
-          <AccordionSection title="Text" defaultOpen>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+        <div style={{ background: 'var(--bg-surface)', border: `1px solid var(--border-default)`, borderRadius: 8, marginBottom: 16, overflow: 'hidden' }}>
+          <AccordionSection title="Status" defaultOpen>
+            <FilterSelect label="Status" value={pendingFilters.statuses[0] ?? ''} options={STATUS_OPTIONS} allLabel="All Statuses"
+              onChange={v => setPendingFilters(f => ({ ...f, statuses: v ? [v] : [] }))} />
+          </AccordionSection>
+          <AccordionSection title="Condition" defaultOpen>
+            <FilterSelect label="Condition" value={pendingFilters.conditions[0] ?? ''} options={CONDITION_OPTIONS} allLabel="All Conditions"
+              onChange={v => setPendingFilters(f => ({ ...f, conditions: v ? [v] : [] }))} />
+          </AccordionSection>
+          <AccordionSection title="Brand">
+            <FilterSelect label="Brand" value={pendingFilters.brands[0] ?? ''} options={BRAND_OPTIONS} allLabel="All Brands"
+              onChange={v => setPendingFilters(f => ({ ...f, brands: v ? [v] : [] }))} />
+          </AccordionSection>
+          <AccordionSection title="Search">
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               <div>
-                <label style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 5, display: 'block', textTransform: 'uppercase', letterSpacing: '.5px' }}>Model</label>
-                <input
-                  style={{ width: '100%', background: 'var(--bg-surface)', border: `1px solid var(--border-default)`, borderRadius: 5, padding: '7px 10px', color: 'var(--text-primary)', fontSize: 13, outline: 'none', boxSizing: 'border-box' }}
-                  placeholder="Filter..."
-                  value={pendingFilters.model}
-                  onChange={e => setPendingFilters(f => ({ ...f, model: e.target.value }))}
-                />
+                <span style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 4, display: 'block', textTransform: 'uppercase' }}>Model</span>
+                <input value={pendingFilters.model} onChange={e => setPendingFilters(f => ({ ...f, model: e.target.value }))}
+                  placeholder="Search model…"
+                  style={{ width: '100%', background: 'var(--bg-base)', border: `1px solid var(--border-default)`, borderRadius: 5, padding: '8px 10px', color: 'var(--text-primary)', fontSize: 13 }} />
               </div>
               <div>
-                <label style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 5, display: 'block', textTransform: 'uppercase', letterSpacing: '.5px' }}>Serial Number</label>
-                <input
-                  style={{ width: '100%', background: 'var(--bg-surface)', border: `1px solid var(--border-default)`, borderRadius: 5, padding: '7px 10px', color: 'var(--text-primary)', fontSize: 13, outline: 'none', boxSizing: 'border-box' }}
-                  placeholder="Filter..."
-                  value={pendingFilters.serial_number}
-                  onChange={e => setPendingFilters(f => ({ ...f, serial_number: e.target.value }))}
-                />
+                <span style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 4, display: 'block', textTransform: 'uppercase' }}>Serial Number</span>
+                <input value={pendingFilters.serial_number} onChange={e => setPendingFilters(f => ({ ...f, serial_number: e.target.value }))}
+                  placeholder="Search serial…"
+                  style={{ width: '100%', background: 'var(--bg-base)', border: `1px solid var(--border-default)`, borderRadius: 5, padding: '8px 10px', color: 'var(--text-primary)', fontSize: 13 }} />
               </div>
             </div>
           </AccordionSection>
-
-          <AccordionSection title="Select">
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 16 }}>
-              <FilterSelect
-                label="Device Brand"
-                allLabel="All Brands"
-                options={BRAND_OPTIONS}
-                value={pendingFilters.brands[0] ?? ''}
-                onChange={(v) => setPendingFilters(f => ({ ...f, brands: v ? [v] : [] }))}
-              />
-              <FilterSelect
-                label="Status"
-                allLabel="All Statuses"
-                options={STATUS_OPTIONS}
-                value={pendingFilters.statuses[0] ?? ''}
-                onChange={(v) => setPendingFilters(f => ({ ...f, statuses: v ? [v] : [] }))}
-              />
-              <FilterSelect
-                label="Condition"
-                allLabel="All Conditions"
-                options={CONDITION_OPTIONS}
-                value={pendingFilters.conditions[0] ?? ''}
-                onChange={(v) => setPendingFilters(f => ({ ...f, conditions: v ? [v] : [] }))}
-              />
-            </div>
-          </AccordionSection>
-
-          {/* Footer */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 20px', borderTop: `1px solid var(--border-default)` }}>
-            <button type="button" style={{ background: 'none', border: `1px solid var(--danger)`, color: 'var(--danger)', padding: '6px 14px', borderRadius: 5, fontSize: 12, cursor: 'pointer', fontWeight: 500 }}
-              onClick={resetFilters}>Reset</button>
-            <div style={{ display: 'flex', gap: 8 }}>
-              <button type="button" style={{ background: 'none', border: `1px solid var(--border-default)`, color: 'var(--text-secondary)', padding: '6px 14px', borderRadius: 5, fontSize: 12, cursor: 'pointer' }}
-                onClick={() => { setPendingFilters({ ...filters }); setFilterOpen(false); }}>Cancel</button>
-              <button type="button" style={{ background: 'var(--accent-green)', border: 'none', color: '#fff', padding: '6px 16px', borderRadius: 5, fontSize: 12, cursor: 'pointer', fontWeight: 600 }}
-                onClick={applyFilters}>Apply</button>
-            </div>
+          <div style={{ display: 'flex', gap: 8, padding: '12px 20px', justifyContent: 'flex-end' }}>
+            <button type="button" style={{ padding: '7px 14px', background: 'none', border: `1px solid var(--border-default)`, borderRadius: 6, color: 'var(--text-secondary)', fontSize: 13, cursor: 'pointer' }} onClick={() => setFilterOpen(false)}>Cancel</button>
+            <button type="button" style={{ padding: '7px 14px', background: 'var(--accent-green)', color: '#000', border: 'none', borderRadius: 6, fontSize: 13, fontWeight: 600, cursor: 'pointer' }} onClick={applyFilters}>Apply</button>
           </div>
         </div>
       )}
 
-      {/* ── TABLE ────────────────────────────────────────────────────────── */}
+      {/* Active filter tags */}
+      {hasFilters && (
+        <div style={{ marginBottom: 12 }}>
+          <button type="button"
+            style={{ background: 'none', border: 'none', fontSize: 12, color: 'var(--accent-green)', cursor: 'pointer', textDecoration: 'underline' }}
+            onClick={resetFilters}>Clear filters</button>
+        </div>
+      )}
+
+      {hasFilters && (
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, padding: '8px 16px', borderBottom: `1px solid var(--border-default)`, alignItems: 'center' }}>
+          <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>Active:</span>
+          {filters.model         && <Tag label={`Model: ${filters.model}`}           onRemove={() => setFilters(f => ({ ...f, model: '' }))} />}
+          {filters.serial_number && <Tag label={`S/N: ${filters.serial_number}`}     onRemove={() => setFilters(f => ({ ...f, serial_number: '' }))} />}
+          {filters.brands.map(b     => <Tag key={b} label={b}  onRemove={() => setFilters(f => ({ ...f, brands:     f.brands.filter(x => x !== b) }))} />)}
+          {filters.statuses.map(s   => <Tag key={s} label={s}  onRemove={() => setFilters(f => ({ ...f, statuses:   f.statuses.filter(x => x !== s) }))} />)}
+          {filters.conditions.map(c => <Tag key={c} label={c}  onRemove={() => setFilters(f => ({ ...f, conditions: f.conditions.filter(x => x !== c) }))} />)}
+        </div>
+      )}
+
+      {/* Body */}
       <div style={{ background: 'var(--bg-surface)', border: `1px solid var(--border-default)`, borderRadius: 8, overflow: 'hidden' }}>
-
-        {/* Top bar */}
-        {hasFilters && (
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 16px', borderBottom: `1px solid var(--border-default)` }}>
-            <button type="button"
-              style={{ background: 'none', border: 'none', fontSize: 12, color: 'var(--accent-green)', cursor: 'pointer', textDecoration: 'underline' }}
-              onClick={resetFilters}>Clear filters</button>
-          </div>
-        )}
-
-        {/* Active filter tags */}
-        {hasFilters && (
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, padding: '8px 16px', borderBottom: `1px solid var(--border-default)`, alignItems: 'center' }}>
-            <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>Active:</span>
-            {filters.model         && <Tag label={`Model: ${filters.model}`}           onRemove={() => setFilters(f => ({ ...f, model: '' }))} />}
-            {filters.serial_number && <Tag label={`S/N: ${filters.serial_number}`}     onRemove={() => setFilters(f => ({ ...f, serial_number: '' }))} />}
-            {filters.brands.map(b     => <Tag key={b} label={b}  onRemove={() => setFilters(f => ({ ...f, brands:     f.brands.filter(x => x !== b) }))} />)}
-            {filters.statuses.map(s   => <Tag key={s} label={s}  onRemove={() => setFilters(f => ({ ...f, statuses:   f.statuses.filter(x => x !== s) }))} />)}
-            {filters.conditions.map(c => <Tag key={c} label={c}  onRemove={() => setFilters(f => ({ ...f, conditions: f.conditions.filter(x => x !== c) }))} />)}
-          </div>
-        )}
-
-        {/* Body */}
         {isLoading ? (
           <div style={{ padding: 60, textAlign: 'center' }}><div className="spinner mx-auto" /></div>
         ) : laptops.length === 0 ? (
@@ -521,7 +451,6 @@ export const LaptopList: React.FC = () => {
                     <td style={S.td(true)}>{getAssigneeName(lp)}</td>
                     <td style={{ ...S.td(false), textAlign: 'center' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 10, justifyContent: 'center' }} onClick={e => e.stopPropagation()}>
-                        {/* View */}
                         <button type="button" style={S.actBtn()} title="View Details"
                           onClick={() => { setDetailLaptopId(lp.id); setDetailPanelOpen(true); }}>
                           <Eye size={13} />
@@ -542,7 +471,7 @@ export const LaptopList: React.FC = () => {
               </tbody>
             </table>
           </div>
-          
+
           <div className="mobile-card-list">
             {laptops.map((lp) => (
               <div key={`mobile-${lp.id}`} className="mobile-data-card" onClick={() => { setDetailLaptopId(lp.id); setDetailPanelOpen(true); }}>
@@ -566,7 +495,7 @@ export const LaptopList: React.FC = () => {
           </>
         )}
 
-        {/* ── PAGINATION ──────────────────────────────────────────────────── */}
+        {/* PAGINATION */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 16px', borderTop: `1px solid var(--border-default)` }}>
           <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>Showing {pageFrom}–{pageTo} of {total}</span>
           <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
@@ -586,7 +515,7 @@ export const LaptopList: React.FC = () => {
         </div>
       </div>
 
-      {/* ── SLIDE PANELS ─────────────────────────────────────────────────── */}
+      {/* SLIDE PANELS */}
       <LaptopDetailPanel
         isOpen={detailPanelOpen}
         onClose={() => setDetailPanelOpen(false)}
