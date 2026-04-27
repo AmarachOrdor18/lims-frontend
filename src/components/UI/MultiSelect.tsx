@@ -19,14 +19,14 @@ export const MultiSelect: React.FC<MultiSelectProps> = ({
   selectedValues,
   onChange,
   placeholder = 'Select options...',
-  id
+  id,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
         setIsOpen(false);
       }
     };
@@ -55,16 +55,21 @@ export const MultiSelect: React.FC<MultiSelectProps> = ({
   const hasSelection = selectedValues.length > 0;
 
   return (
-    <div style={{ position: 'relative', minWidth: 160 }} ref={containerRef} id={id}>
+    <div
+      style={{ position: 'relative', minWidth: 160 }}
+      ref={containerRef}
+      id={id}
+    >
+      {/* Trigger button */}
       <button
         type="button"
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={() => setIsOpen(o => !o)}
         style={{
           width: '100%',
           height: 36,
-          padding: '0 10px',
+          padding: '0 36px 0 10px', /* right padding for chevron */
           background: 'var(--bg-elevated)',
-          border: `1px solid ${isOpen ? 'var(--accent-green)' : hasSelection ? 'var(--accent-green)' : 'var(--border-default)'}`,
+          border: `1px solid ${isOpen || hasSelection ? 'var(--accent-green)' : 'var(--border-default)'}`,
           borderRadius: 'var(--radius-md)',
           display: 'flex',
           alignItems: 'center',
@@ -77,6 +82,7 @@ export const MultiSelect: React.FC<MultiSelectProps> = ({
           fontWeight: 500,
           transition: 'all 150ms ease',
           outline: 'none',
+          position: 'relative',
         }}
       >
         <span style={{
@@ -84,35 +90,49 @@ export const MultiSelect: React.FC<MultiSelectProps> = ({
           overflow: 'hidden',
           textOverflow: 'ellipsis',
           color: hasSelection ? 'var(--text-primary)' : 'var(--text-muted)',
+          flex: 1,
+          textAlign: 'left',
         }}>
           {getLabel()}
         </span>
-        <ChevronDown
-          size={13}
-          style={{
-            flexShrink: 0,
-            color: 'var(--text-muted)',
-            transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)',
-            transition: 'transform 150ms ease',
-          }}
-        />
+        {/* Chevron always on right with proper spacing */}
+        <span style={{
+          position: 'absolute',
+          right: 10,
+          top: '50%',
+          transform: `translateY(-50%) rotate(${isOpen ? '180deg' : '0deg'})`,
+          transition: 'transform 150ms ease',
+          display: 'flex',
+          alignItems: 'center',
+          color: 'var(--text-muted)',
+          pointerEvents: 'none',
+        }}>
+          <ChevronDown size={13} />
+        </span>
       </button>
 
+      {/* Dropdown — always below, fixed max height, scrollable */}
       {isOpen && (
         <div style={{
           position: 'absolute',
           top: 'calc(100% + 4px)',
+          bottom: 'auto',          /* always open downward */
           left: 0,
           minWidth: '100%',
+          maxHeight: 240,          /* fixed height */
+          overflowY: 'auto',       /* scrollable */
           background: 'var(--bg-elevated)',
           border: '1px solid var(--border-default)',
-          borderRadius: 'var(--radius-md)',
+          borderRadius: 8,
           boxShadow: '0 8px 24px rgba(0,0,0,0.4)',
-          zIndex: 200,
-          overflow: 'hidden',
-          animation: 'fadeIn 0.15s ease',
+          zIndex: 9999,            /* always on top */
         }}>
-          <div style={{ padding: 4, maxHeight: 240, overflowY: 'auto' }}>
+          <div style={{ padding: 4 }}>
+            {options.length === 0 && (
+              <div style={{ padding: '10px 14px', fontSize: 13, color: 'var(--text-muted)' }}>
+                No options available
+              </div>
+            )}
             {options.map(option => {
               const isSelected = selectedValues.includes(option.value);
               return (
@@ -123,20 +143,21 @@ export const MultiSelect: React.FC<MultiSelectProps> = ({
                     display: 'flex',
                     alignItems: 'center',
                     gap: 10,
-                    padding: '7px 10px',
+                    padding: '8px 10px',
                     borderRadius: 6,
                     cursor: 'pointer',
                     fontSize: 13,
-                    fontFamily: 'var(--font-sans)',
                     color: isSelected ? 'var(--text-primary)' : 'var(--text-secondary)',
-                    background: isSelected ? 'rgba(225,29,72,0.08)' : 'transparent',
-                    transition: 'background 0.15s ease',
+                    background: isSelected ? 'rgba(var(--accent-green-rgb, 34,197,94),0.08)' : 'transparent',
+                    transition: 'background 0.1s',
+                    userSelect: 'none',
                   }}
                   onMouseEnter={e => {
                     if (!isSelected) (e.currentTarget as HTMLElement).style.background = 'var(--bg-hover)';
                   }}
                   onMouseLeave={e => {
-                    (e.currentTarget as HTMLElement).style.background = isSelected ? 'rgba(225,29,72,0.08)' : 'transparent';
+                    (e.currentTarget as HTMLElement).style.background = isSelected
+                      ? 'rgba(34,197,94,0.08)' : 'transparent';
                   }}
                 >
                   <div style={{
@@ -149,7 +170,7 @@ export const MultiSelect: React.FC<MultiSelectProps> = ({
                     alignItems: 'center',
                     justifyContent: 'center',
                     flexShrink: 0,
-                    transition: 'all 0.15s ease',
+                    transition: 'all 0.15s',
                     color: 'white',
                   }}>
                     {isSelected && <Check size={9} strokeWidth={3.5} />}
