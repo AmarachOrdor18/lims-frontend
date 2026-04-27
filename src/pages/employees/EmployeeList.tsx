@@ -150,8 +150,8 @@ export const EmployeeList: React.FC = () => {
       let q = `?page=${page}&limit=20`;
       if (filters.statuses.length)       q += `&status=${filters.statuses.join(',')}`;
       if (filters.departments.length)    q += `&department=${filters.departments.join(',')}`;
-      if (filters.name)                  q += `&name_search=${encodeURIComponent(filters.name)}`;
-      if (filters.email)                 q += `&email_search=${encodeURIComponent(filters.email)}`;
+      if (filters.name)                  q += `&search=${encodeURIComponent(filters.name)}`;
+      if (filters.email)                 q += `&search=${encodeURIComponent(filters.email)}`;
       q += `&sort_by=${sortConfig.key}&sort_dir=${sortConfig.direction}`;
       return api.get(`/employees${q}`, signal);
     },
@@ -169,7 +169,6 @@ export const EmployeeList: React.FC = () => {
       setDeptOptions(merged.map(d => ({ label: d, value: d })));
     }
   }, [employees]);
-
 
   // ── Export ────────────────────────────────────────────────────────────────
   function downloadCSV(filename: string, rows: Employee[]) {
@@ -213,16 +212,9 @@ export const EmployeeList: React.FC = () => {
   const pageFrom   = total === 0 ? 0 : (page - 1) * 20 + 1;
   const pageTo     = Math.min(total, page * 20);
 
-  // ── Get assigned asset tag ────────────────────────────────────────────────
-  const getAssignedAssetTag = (emp: Employee): string => {
-    const asn = (emp as any).assignments?.find((a: any) => !a.returned_date);
-    if (asn?.laptop) {
-      return asn.laptop.asset_tag ?? '—';
-    }
-    if (emp.assigned_laptop) {
-      return emp.assigned_laptop.asset_tag ?? '—';
-    }
-    return '—';
+  // ── Get assigned asset tag — backend now returns this directly ─────────────
+  const getAssignedAssetTag = (emp: any): string => {
+    return emp.assigned_asset_tag ?? '—';
   };
 
   // ── Inline style helpers ──────────────────────────────────────────────────
@@ -278,52 +270,33 @@ export const EmployeeList: React.FC = () => {
           <button type="button" style={S.iconBtn()} title="Refresh" onClick={() => refetch()}><RefreshCw size={14} /></button>
 
           <button type="button" style={S.iconBtn(filterOpen)} title="Filters"
-            onClick={() => { setFilterOpen(o => !o); setPendingFilters({ ...filters }); }}>
+            onClick={() => { setPendingFilters(filters); setFilterOpen(o => !o); }}>
             <SlidersHorizontal size={14} />
           </button>
 
           {/* Export dropdown */}
-          <div style={{ position: 'relative' }} ref={exportRef}>
-            <button type="button" style={S.iconBtn(exportOpen)} title="Export" onClick={() => setExportOpen(o => !o)}>
+          <div ref={exportRef} style={{ position: 'relative' }}>
+            <button type="button" style={S.iconBtn()} title="Export" onClick={() => setExportOpen(o => !o)}>
               <Download size={14} />
             </button>
             {exportOpen && (
-              <div style={{ position: 'absolute', right: 0, top: 'calc(100% + 4px)', background: 'var(--bg-surface)', border: `1px solid var(--border-default)`, borderRadius: 8, minWidth: 220, zIndex: 50, overflow: 'hidden' }}>
-                  <div style={{ padding: '8px 14px 4px', fontSize: 11, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '.5px' }}>Current Page</div>
-                  {(['CSV'] as const).map(fmt => (
-                    <button key={fmt} type="button" style={S.expItem()}
-                      onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg-hover)')}
-                      onMouseLeave={e => (e.currentTarget.style.background = 'none')}
-                      onClick={() => { downloadCSV(`employees-page.${fmt.toLowerCase()}`, employees); setExportOpen(false); }}>
-                      Export as {fmt}
-                    </button>
-                  ))}
-                  <div style={{ height: 1, background: 'var(--border-default)', margin: '2px 0' }} />
-                  <div style={{ padding: '8px 14px 4px', fontSize: 11, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '.5px' }}>All Records</div>
-                  <button type="button" style={S.expItem()}
-                    onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg-hover)')}
-                    onMouseLeave={e => (e.currentTarget.style.background = 'none')}
-                    onClick={() => { downloadCSV('employees-all.csv', employees); setExportOpen(false); }}>
-                    Export All — CSV
-                  </button>
-                </div>
+              <div style={{ position: 'absolute', right: 0, top: 38, background: 'var(--bg-elevated)', border: `1px solid var(--border-default)`, borderRadius: 8, minWidth: 160, zIndex: 50, boxShadow: '0 4px 16px rgba(0,0,0,0.3)' }}>
+                <button style={S.expItem()} onClick={() => { downloadCSV('employees.csv', employees); setExportOpen(false); }}>Export Current Page</button>
+              </div>
             )}
           </div>
 
           <CSVImporter
-            title="Employees"
             onImport={handleImport}
-            sampleHeaders={['First Name','Last Name','Email','Department','Job Title','Entity','Location','Staff Type','Seniority']}
-            sampleRows={[
-              ['John','Doe','john.doe@qucoon.com','Engineering','Frontend Dev','Qucoon','Lagos','Staff','Mid-Level'],
-              ['Jane','Smith','jane.smith@qucoon.com','HR','HR Manager','Qucoon','Lagos','Staff','Lead'],
-            ]}
+            templateHeaders={['First Name','Last Name','Email','Department','Job Title','Location','Entity','Staff Type','Seniority']}
+            label="Import CSV"
           />
 
-          {/* Add Employee — opens form panel overlay */}
-          <button type="button" id="add-employee-btn"
-            style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '0 14px', height: 34, background: 'var(--accent-green)', border: 'none', borderRadius: 6, color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
-            onClick={() => { setFormEmployeeId(null); setFormPanelOpen(true); }}>
+          <button
+            type="button"
+            style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px', background: 'var(--accent-green)', color: '#000', border: 'none', borderRadius: 6, fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
+            onClick={() => { setFormEmployeeId(null); setFormPanelOpen(true); }}
+          >
             <Plus size={14} /> Add Employee
           </button>
         </div>
@@ -331,49 +304,38 @@ export const EmployeeList: React.FC = () => {
 
       {/* FILTER PANEL */}
       {filterOpen && (
-        <div style={{ background: 'var(--bg-elevated)', border: `1px solid var(--border-default)`, borderRadius: 8, marginBottom: 16, overflow: 'hidden' }}>
-          <AccordionSection title="Text" defaultOpen>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-              {(['name','email'] as const).map(field => (
-                <div key={field}>
-                  <label style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 5, display: 'block', textTransform: 'uppercase', letterSpacing: '.5px' }}>
-                    {field === 'name' ? 'Full Name' : 'Email'}
-                  </label>
-                  <input
-                    style={{ width: '100%', background: 'var(--bg-surface)', border: `1px solid var(--border-default)`, borderRadius: 5, padding: '7px 10px', color: 'var(--text-primary)', fontSize: 13, outline: 'none', boxSizing: 'border-box' }}
-                    placeholder="Filter..."
-                    value={pendingFilters[field]}
-                    onChange={e => setPendingFilters(f => ({ ...f, [field]: e.target.value }))}
-                  />
-                </div>
-              ))}
+        <div style={{ background: 'var(--bg-surface)', border: `1px solid var(--border-default)`, borderRadius: 8, marginBottom: 16, overflow: 'hidden' }}>
+          <AccordionSection title="Status" defaultOpen>
+            <FilterSelectSingle label="Status" options={STATUS_OPTIONS} value={pendingFilters.statuses[0] ?? ''} allLabel="All Statuses" onChange={v => setPendingFilters(f => ({ ...f, statuses: v ? [v] : [] }))} />
+          </AccordionSection>
+          <AccordionSection title="Department" defaultOpen>
+            <FilterSelect label="Department" options={deptOptions} selected={pendingFilters.departments} onChange={v => setPendingFilters(f => ({ ...f, departments: v }))} />
+          </AccordionSection>
+          <AccordionSection title="Search">
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <div>
+                <span style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 4, display: 'block', textTransform: 'uppercase' }}>Name</span>
+                <input
+                  value={pendingFilters.name}
+                  onChange={e => setPendingFilters(f => ({ ...f, name: e.target.value }))}
+                  placeholder="Search by name…"
+                  style={{ width: '100%', background: 'var(--bg-base)', border: `1px solid var(--border-default)`, borderRadius: 5, padding: '8px 10px', color: 'var(--text-primary)', fontSize: 13 }}
+                />
+              </div>
+              <div>
+                <span style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 4, display: 'block', textTransform: 'uppercase' }}>Email</span>
+                <input
+                  value={pendingFilters.email}
+                  onChange={e => setPendingFilters(f => ({ ...f, email: e.target.value }))}
+                  placeholder="Search by email…"
+                  style={{ width: '100%', background: 'var(--bg-base)', border: `1px solid var(--border-default)`, borderRadius: 5, padding: '8px 10px', color: 'var(--text-primary)', fontSize: 13 }}
+                />
+              </div>
             </div>
           </AccordionSection>
-
-          <AccordionSection title="Select">
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-              <FilterSelect
-                label="Department"
-                options={deptOptions}
-                selected={pendingFilters.departments}
-                onChange={v => setPendingFilters(f => ({ ...f, departments: v }))}
-              />
-              <FilterSelectSingle
-                label="Status"
-                options={STATUS_OPTIONS}
-                allLabel="All Statuses"
-                value={pendingFilters.statuses[0] ?? ''}
-                onChange={(v) => setPendingFilters(f => ({ ...f, statuses: v ? [v] : [] }))}
-              />
-            </div>
-          </AccordionSection>
-
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 20px', borderTop: `1px solid var(--border-default)` }}>
-            <button type="button" style={{ background: 'none', border: `1px solid var(--danger)`, color: 'var(--danger)', padding: '6px 14px', borderRadius: 5, fontSize: 12, cursor: 'pointer', fontWeight: 500 }} onClick={resetFilters}>Reset</button>
-            <div style={{ display: 'flex', gap: 8 }}>
-              <button type="button" style={{ background: 'none', border: `1px solid var(--border-default)`, color: 'var(--text-secondary)', padding: '6px 14px', borderRadius: 5, fontSize: 12, cursor: 'pointer' }} onClick={() => { setPendingFilters({ ...filters }); setFilterOpen(false); }}>Cancel</button>
-              <button type="button" style={{ background: 'var(--accent-green)', border: 'none', color: '#fff', padding: '6px 16px', borderRadius: 5, fontSize: 12, cursor: 'pointer', fontWeight: 600 }} onClick={applyFilters}>Apply</button>
-            </div>
+          <div style={{ display: 'flex', gap: 8, padding: '12px 20px', justifyContent: 'flex-end' }}>
+            <button type="button" style={{ padding: '7px 14px', background: 'none', border: `1px solid var(--border-default)`, borderRadius: 6, color: 'var(--text-secondary)', fontSize: 13, cursor: 'pointer' }} onClick={() => setFilterOpen(false)}>Cancel</button>
+            <button type="button" style={{ padding: '7px 14px', background: 'var(--accent-green)', color: '#000', border: 'none', borderRadius: 6, fontSize: 13, fontWeight: 600, cursor: 'pointer' }} onClick={applyFilters}>Apply</button>
           </div>
         </div>
       )}
@@ -387,7 +349,7 @@ export const EmployeeList: React.FC = () => {
         )}
 
         {hasFilters && (
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, padding: '8px 16px', borderBottom: `1px solid var(--border-default)`, alignItems: 'center' }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, padding: '8px 16px', borderBottom: `1px solid var(--border-default)`, alignItems: 'center' }}>
             <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>Active:</span>
             {filters.name  && <Tag label={`Name: ${filters.name}`}   onRemove={() => setFilters(f => ({ ...f, name: '' }))} />}
             {filters.email && <Tag label={`Email: ${filters.email}`} onRemove={() => setFilters(f => ({ ...f, email: '' }))} />}
