@@ -325,11 +325,12 @@ export const LaptopList: React.FC = () => {
               </div>
             )}
           </div>
-
+          
           <CSVImporter
             onImport={handleImport}
+            title="Laptops"
             sampleHeaders={['Brand','Model','Serial Number','Purchase Date','Condition','Status']}
-            label="Import CSV"
+            sampleRows={[['Dell','XPS 15','SN-123456','2024-01-01','FUNCTIONAL','AVAILABLE']]}
           />
 
           <button
