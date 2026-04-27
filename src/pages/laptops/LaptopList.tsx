@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import {
   Plus, Hash, Eye,
-  Monitor, Activity, UserCheck,
+  Monitor, Activity, UserCheck, UserPlus, ArrowLeftRight,
   ChevronsLeft, ChevronLeft, ChevronRight, ChevronsRight,
   ChevronsUpDown, ChevronUp, ChevronDown,
   RefreshCw, SlidersHorizontal, Download,
@@ -325,12 +325,11 @@ export const LaptopList: React.FC = () => {
               </div>
             )}
           </div>
-          
+
           <CSVImporter
             onImport={handleImport}
-            title="Laptops"
-            sampleHeaders={['Brand','Model','Serial Number','Purchase Date','Condition','Status']}
-            sampleRows={[['Dell','XPS 15','SN-123456','2024-01-01','FUNCTIONAL','AVAILABLE']]}
+            templateHeaders={['Brand','Model','Serial Number','Purchase Date','Condition','Status']}
+            label="Import CSV"
           />
 
           <button
@@ -456,15 +455,36 @@ export const LaptopList: React.FC = () => {
                           onClick={() => { setDetailLaptopId(lp.id); setDetailPanelOpen(true); }}>
                           <Eye size={13} />
                         </button>
-                        <button
-                          type="button"
-                          style={S.actBtn()}
-                          title={lp.status === 'RETIRED' ? 'Retired laptops cannot be assigned' : (lp.status === 'ASSIGNED' ? 'Reassign Laptop' : 'Assign Laptop')}
-                          disabled={lp.status === 'RETIRED'}
-                          onClick={() => openAssignModal(lp)}
-                        >
-                          <UserCheck size={13} />
-                        </button>
+                        {lp.status === 'AVAILABLE' && (
+                          <button
+                            type="button"
+                            style={{ ...S.actBtn(), color: 'var(--accent-green)', borderColor: 'var(--accent-green)' }}
+                            title="Assign Laptop"
+                            onClick={() => openAssignModal(lp)}
+                          >
+                            <UserPlus size={13} />
+                          </button>
+                        )}
+                        {lp.status === 'ASSIGNED' && (
+                          <button
+                            type="button"
+                            style={{ ...S.actBtn(), color: '#60a5fa', borderColor: '#60a5fa' }}
+                            title="Reassign Laptop"
+                            onClick={() => openAssignModal(lp)}
+                          >
+                            <ArrowLeftRight size={13} />
+                          </button>
+                        )}
+                        {lp.status === 'RETIRED' && (
+                          <button
+                            type="button"
+                            style={{ ...S.actBtn(), opacity: 0.3, cursor: 'not-allowed' }}
+                            title="Retired — cannot be assigned"
+                            disabled
+                          >
+                            <UserCheck size={13} />
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -485,9 +505,26 @@ export const LaptopList: React.FC = () => {
                     <button type="button" style={S.actBtn()} title="View Details" onClick={() => { setDetailLaptopId(lp.id); setDetailPanelOpen(true); }}>
                       <Eye size={13} />
                     </button>
-                    <button type="button" style={S.actBtn()} title={lp.status === 'ASSIGNED' ? 'Reassign Laptop' : 'Assign Laptop'} onClick={() => openAssignModal(lp)}>
-                      <UserCheck size={13} />
-                    </button>
+                    {lp.status === 'AVAILABLE' && (
+                      <button
+                        type="button"
+                        style={{ ...S.actBtn(), color: 'var(--accent-green)', borderColor: 'var(--accent-green)' }}
+                        title="Assign Laptop"
+                        onClick={() => openAssignModal(lp)}
+                      >
+                        <UserPlus size={13} />
+                      </button>
+                    )}
+                    {lp.status === 'ASSIGNED' && (
+                      <button
+                        type="button"
+                        style={{ ...S.actBtn(), color: '#60a5fa', borderColor: '#60a5fa' }}
+                        title="Reassign Laptop"
+                        onClick={() => openAssignModal(lp)}
+                      >
+                        <ArrowLeftRight size={13} />
+                      </button>
+                    )}
                   </div>
                 </div>
               </div>
