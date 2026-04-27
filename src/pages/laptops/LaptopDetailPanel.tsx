@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import {
-  Clock, MessageSquare, Edit, UserCheck, RotateCcw,
+  Clock, MessageSquare, Edit, UserCheck, RotateCcw, Archive, AlertTriangle,
 } from 'lucide-react';
 import { SlidePanel } from '../../components/UI/SlidePanel';
+import { ConfirmModal } from '../../components/UI/ConfirmModal';
 import { Badge } from '../../components/UI/Badge';
 import { AssetAssignmentModal } from '../../components/Modals/AssetAssignmentModal';
 import { api } from '../../api';
@@ -27,10 +28,14 @@ export const LaptopDetailPanel: React.FC<LaptopDetailPanelProps> = ({
   const [isLoading, setIsLoading] = useState(false);
   const [showAssignModal, setShowAssignModal] = useState(false);
 
+  // Confirm modals
+  const [confirmReturn, setConfirmReturn]   = useState(false);
+  const [confirmRetire, setConfirmRetire]   = useState(false);
+  const [confirmFaulty, setConfirmFaulty]   = useState(false);
+  const [isActing, setIsActing]             = useState(false);
+
   useEffect(() => {
-    if (isOpen && laptopId) {
-      fetchData();
-    }
+    if (isOpen && laptopId) fetchData();
   }, [isOpen, laptopId]);
 
   const fetchData = async () => {
@@ -40,19 +45,23 @@ export const LaptopDetailPanel: React.FC<LaptopDetailPanelProps> = ({
       const { data } = await api.get(`/laptops/${laptopId}`);
       setLaptop(data);
 
-      // Current assignee
-      const activeAsn = data.assignments?.find((a: any) => !a.returned_date);
-      if (activeAsn) {
-        const { data: empData } = await api.get(`/employees/${activeAsn.employee_id}`);
-        setCurrentAssignee(empData);
+      // Current assignee from flat fields
+      if (data.assigned_to_id) {
+        setCurrentAssignee({
+          id: data.assigned_to_id,
+          first_name: data.assigned_to_name?.split(' ')[0] ?? '',
+          last_name: data.assigned_to_name?.split(' ').slice(1).join(' ') ?? '',
+          email: data.assigned_to_email ?? '',
+          department: data.assigned_to_department ?? '',
+        } as Employee);
       } else {
         setCurrentAssignee(null);
       }
 
       // History
       try {
-        const { data: historyData } = await api.get(`/assignments/history/${laptopId}`);
-        setHistory(historyData);
+        const histRes = await api.get(`/assignments/history/${laptopId}`);
+        setHistory(Array.isArray(histRes) ? histRes : histRes.data ?? []);
       } catch {
         setHistory([]);
       }
@@ -64,27 +73,63 @@ export const LaptopDetailPanel: React.FC<LaptopDetailPanelProps> = ({
   };
 
   const handleReturn = async () => {
-    if (!laptopId) return;
-    if (!window.confirm("Return this laptop?\n\nThis will mark the laptop as Available and close the current assignment record.")) {
-      return;
-    }
-    
+    if (!laptopId || !currentAssignee) return;
     try {
-      await api.post(`/assignments/return`, { laptop_id: laptopId });
+      setIsActing(true);
+      // Find active assignment id from history
+      const active = history.find((h: any) => !h.returned_date);
+      if (active) {
+        await api.patch(`/assignments/${active.id}/return`, {});
+      }
       toast.success('Device returned successfully');
+      setConfirmReturn(false);
       fetchData();
       onDataChange();
-    } catch {
-      toast.error('Failed to return device');
+    } catch (e: any) {
+      toast.error(e.message || 'Failed to return device');
+    } finally {
+      setIsActing(false);
     }
   };
 
+  const handleRetire = async () => {
+    if (!laptopId) return;
+    try {
+      setIsActing(true);
+      await api.patch(`/laptops/${laptopId}/status`, { status: 'RETIRED' });
+      toast.success('Laptop archived successfully');
+      setConfirmRetire(false);
+      fetchData();
+      onDataChange();
+    } catch (e: any) {
+      toast.error(e.message || 'Failed to retire laptop');
+    } finally {
+      setIsActing(false);
+    }
+  };
+
+  const handleMarkFaulty = async () => {
+    if (!laptopId) return;
+    try {
+      setIsActing(true);
+      const newCondition = laptop?.condition === 'FAULTY' ? 'FUNCTIONAL' : 'FAULTY';
+      await api.patch(`/laptops/${laptopId}/status`, { condition: newCondition });
+      toast.success(`Laptop marked as ${newCondition.toLowerCase()}`);
+      setConfirmFaulty(false);
+      fetchData();
+      onDataChange();
+    } catch (e: any) {
+      toast.error(e.message || 'Failed to update condition');
+    } finally {
+      setIsActing(false);
+    }
+  };
 
   if (!isOpen) return null;
 
   return (
     <>
-      <SlidePanel isOpen={isOpen} onClose={onClose}>
+      <SlidePanel isOpen={isOpen} onClose={onClose} title="Device Details">
         {isLoading ? (
           <div style={{ padding: 60, textAlign: 'center' }}>
             <div className="spinner mx-auto" />
@@ -95,12 +140,13 @@ export const LaptopDetailPanel: React.FC<LaptopDetailPanelProps> = ({
             <div className="sp-device-header">
               <div className="sp-status-row">
                 <div className="sp-device-tag">{laptop.asset_tag}</div>
+                <Badge status={laptop.status} />
                 <Badge status={laptop.condition ?? 'FUNCTIONAL'} />
               </div>
               <div className="sp-device-name">{laptop.brand} {laptop.model}</div>
             </div>
 
-            {/* Serial Number + Purchase Date */}
+            {/* Info Cards */}
             <div className="sp-info-row">
               <div className="sp-info-card">
                 <div className="sp-info-card-label">Serial Number</div>
@@ -116,34 +162,17 @@ export const LaptopDetailPanel: React.FC<LaptopDetailPanelProps> = ({
               </div>
             </div>
 
-            {/* Fault Description (if faulty) */}
+            {/* Fault/Notes block */}
             {laptop.condition === 'FAULTY' && (
               <div className="sp-fault-block">
-                <div className="sp-fault-label">
-                  <MessageSquare size={14} />
-                  Fault Description
-                </div>
+                <div className="sp-fault-label"><MessageSquare size={14} />Fault Description</div>
                 <div className="sp-fault-text">
-                  {(laptop as any).fault_description ||
-                    'Currently faulty. No description provided.'}
+                  {(laptop as any).fault_description || 'No fault description provided.'}
                 </div>
               </div>
             )}
 
-            {/* Notes (if functional/available) */}
-            {laptop.condition !== 'FAULTY' && (
-              <div className="sp-notes-block">
-                <div className="sp-notes-label">
-                  <MessageSquare size={14} />
-                  Notes
-                </div>
-                <div className="sp-notes-text">
-                  {(laptop as any).notes || 'No notes added.'}
-                </div>
-              </div>
-            )}
-
-            {/* Current Assignment Section */}
+            {/* Current Assignment */}
             <div className="sp-section-title">CURRENT ASSIGNMENT</div>
 
             {currentAssignee ? (
@@ -161,16 +190,10 @@ export const LaptopDetailPanel: React.FC<LaptopDetailPanelProps> = ({
                   </div>
                 </div>
                 <div className="sp-assignee-actions">
-                  <button
-                    className="btn btn-secondary"
-                    onClick={() => setShowAssignModal(true)}
-                  >
+                  <button className="btn btn-secondary" onClick={() => setShowAssignModal(true)}>
                     <UserCheck size={14} /> Reassign
                   </button>
-                  <button
-                    className="btn btn-secondary"
-                    onClick={handleReturn}
-                  >
+                  <button className="btn btn-secondary" onClick={() => setConfirmReturn(true)}>
                     <RotateCcw size={14} /> Return
                   </button>
                 </div>
@@ -178,41 +201,53 @@ export const LaptopDetailPanel: React.FC<LaptopDetailPanelProps> = ({
             ) : (
               <div className="sp-empty-assignment">
                 <p>Not currently assigned</p>
+                {laptop.status !== 'RETIRED' && (
+                  <button className="btn btn-primary" onClick={() => setShowAssignModal(true)}>
+                    <UserCheck size={14} /> Assign Laptop
+                  </button>
+                )}
+              </div>
+            )}
+
+            {/* Critical Actions */}
+            {laptop.status !== 'RETIRED' && (
+              <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 8 }}>
                 <button
-                  className="btn btn-primary"
-                  onClick={() => setShowAssignModal(true)}
+                  className="sp-action-btn-full"
+                  onClick={() => setConfirmFaulty(true)}
+                  style={{ color: laptop.condition === 'FAULTY' ? 'var(--accent-green)' : '#f59e0b' }}
                 >
-                  <UserCheck size={14} /> Assign Laptop
+                  <AlertTriangle size={14} />
+                  {laptop.condition === 'FAULTY' ? 'Mark as Functional' : 'Mark as Faulty'}
+                </button>
+                <button
+                  className="sp-action-btn-full"
+                  onClick={() => setConfirmRetire(true)}
+                  style={{ color: '#ef4444' }}
+                >
+                  <Archive size={14} /> Archive (Retire) Device
                 </button>
               </div>
             )}
 
             {/* Assignment History */}
             <div className="sp-section-title" style={{ marginTop: 20 }}>
-              <Clock size={13} />
-              ASSIGNMENT HISTORY
+              <Clock size={13} /> ASSIGNMENT HISTORY
             </div>
 
             {history.length === 0 ? (
-              <div className="sp-empty-assignment">
-                <p>No assignment history</p>
-              </div>
+              <div className="sp-empty-assignment"><p>No assignment history</p></div>
             ) : (
               history.map((record: any) => (
                 <div className="sp-history-card" key={record.id}>
                   <div className="sp-history-header">
                     <div className="sp-history-name">
-                      {record.employee
-                        ? `${record.employee.first_name} ${record.employee.last_name}`
-                        : 'Unknown'}
+                      {record.employee_name ?? `${record.first_name ?? ''} ${record.last_name ?? ''}`.trim() ?? 'Unknown'}
                     </div>
-                    {!record.returned_date ? (
-                      <Badge status="ACTIVE" />
-                    ) : (
-                      <span className="badge badge-inactive">
-                        <span className="badge-dot" />Returned
-                      </span>
-                    )}
+                    {!record.returned_date
+                      ? <Badge status="ASSIGNED" />
+                      : <span className="badge badge-inactive"><span className="badge-dot" />Returned</span>
+                    }
                   </div>
                   <div className="sp-history-dates">
                     {format(new Date(record.assigned_date), 'MMM d, yyyy')}
@@ -228,16 +263,11 @@ export const LaptopDetailPanel: React.FC<LaptopDetailPanelProps> = ({
               ))
             )}
 
-            {/* Edit Device Button */}
+            {/* Edit Button */}
             <button
               className="sp-action-btn-full"
               style={{ marginTop: 16 }}
-              onClick={() => {
-                if (onOpenEditForm && laptopId) {
-                  onClose();
-                  onOpenEditForm(laptopId);
-                }
-              }}
+              onClick={() => { if (onOpenEditForm && laptopId) { onClose(); onOpenEditForm(laptopId); } }}
             >
               <Edit size={14} /> Edit Device
             </button>
@@ -254,10 +284,45 @@ export const LaptopDetailPanel: React.FC<LaptopDetailPanelProps> = ({
         isOpen={showAssignModal}
         onClose={() => setShowAssignModal(false)}
         laptop={laptop}
-        onSuccess={() => {
-          fetchData();
-          onDataChange();
-        }}
+        onSuccess={() => { fetchData(); onDataChange(); }}
+      />
+
+      {/* Confirm Return */}
+      <ConfirmModal
+        isOpen={confirmReturn}
+        onClose={() => setConfirmReturn(false)}
+        onConfirm={handleReturn}
+        title="Return Device"
+        message={`Are you sure you want to return this laptop from ${currentAssignee?.first_name} ${currentAssignee?.last_name}? It will be marked as Available.`}
+        confirmLabel="Yes, Return"
+        variant="warning"
+        isLoading={isActing}
+      />
+
+      {/* Confirm Retire */}
+      <ConfirmModal
+        isOpen={confirmRetire}
+        onClose={() => setConfirmRetire(false)}
+        onConfirm={handleRetire}
+        title="Archive Device"
+        message={`Are you sure you want to retire ${laptop?.asset_tag}? This cannot be undone and the device will be removed from active inventory.`}
+        confirmLabel="Yes, Retire"
+        variant="danger"
+        isLoading={isActing}
+      />
+
+      {/* Confirm Faulty */}
+      <ConfirmModal
+        isOpen={confirmFaulty}
+        onClose={() => setConfirmFaulty(false)}
+        onConfirm={handleMarkFaulty}
+        title={laptop?.condition === 'FAULTY' ? 'Mark as Functional' : 'Mark as Faulty'}
+        message={laptop?.condition === 'FAULTY'
+          ? `Mark ${laptop?.asset_tag} as functional and return it to normal inventory?`
+          : `Mark ${laptop?.asset_tag} as faulty? It will still show in inventory but flagged for repair.`}
+        confirmLabel="Confirm"
+        variant="warning"
+        isLoading={isActing}
       />
     </>
   );
