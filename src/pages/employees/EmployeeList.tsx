@@ -288,7 +288,7 @@ export const EmployeeList: React.FC = () => {
 
           <CSVImporter
             onImport={handleImport}
-            templateHeaders={['First Name','Last Name','Email','Department','Job Title','Location','Entity','Staff Type','Seniority']}
+            sampleHeaders={['First Name','Last Name','Email','Department','Job Title','Location','Entity','Staff Type','Seniority']}
             label="Import CSV"
           />
 
