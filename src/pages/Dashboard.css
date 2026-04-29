@@ -230,8 +230,17 @@
 
 @media (max-width: 640px) {
   .recent-assignment-row {
-    padding: 8px 0;
+    padding: 10px 0;
     gap: 8px;
+    flex-wrap: wrap;
+  }
+  .ra-date {
+    display: none;
+  }
+  .ra-employee {
+    width: 100%;
+    margin-left: 40px; /* align with text */
+    margin-top: -6px;
   }
 }
 
@@ -393,11 +402,11 @@
     margin-bottom: 10px;
   }
   .stat-cards-grid.dashboard-stat-grid {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 8px;
+    grid-template-columns: 1fr;
+    gap: 12px;
   }
   .dashboard-stat-card {
-    padding: 10px 12px;
+    padding: 14px 16px;
   }
 }
 

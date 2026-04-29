@@ -318,7 +318,7 @@ export const LaptopList: React.FC = () => {
           </button>
 
           {/* Export dropdown */}
-          <div ref={exportRef} style={{ position: 'relative' }}>
+          <div ref={exportRef} style={{ position: 'relative' }} className="hide-on-mobile">
             <button type="button" style={S.iconBtn()} title="Export" onClick={() => setExportOpen(o => !o)}>
               <Download size={14} />
             </button>
@@ -329,11 +329,13 @@ export const LaptopList: React.FC = () => {
             )}
           </div>
 
-          <CSVImporter
-            onImport={handleImport}
-            sampleHeaders={['Brand','Model','Serial Number','Purchase Date','Condition','Status']}
-            title="Laptops"
-          />
+          <div className="hide-on-mobile">
+            <CSVImporter
+              onImport={handleImport}
+              sampleHeaders={['Brand','Model','Serial Number','Purchase Date','Condition','Status']}
+              title="Laptops"
+            />
+          </div>
 
           <button
             type="button"
