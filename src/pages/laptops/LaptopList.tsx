@@ -79,7 +79,7 @@ function FilterSelect({
         onChange={e => onChange(e.target.value)}
         style={{
           width: '100%',
-          background: 'var(--bg-surface)',
+          backgroundColor: 'var(--bg-surface)',
           border: `1px solid var(--border-default)`,
           borderRadius: 5,
           padding: '8px 10px',
@@ -518,7 +518,7 @@ export const LaptopList: React.FC = () => {
                     {lp.status === 'AVAILABLE' && (
                       <button
                         type="button"
-                        style={{ ...S.actBtn(), color: 'var(--accent-green)', borderColor: 'var(--accent-green)' }}
+                        style={{ ...S.actBtn(), color: 'var(--status-available-text)', borderColor: 'var(--status-available-text)', background: 'rgba(34, 197, 94, 0.08)' }}
                         title="Assign Laptop"
                         onClick={() => openAssignModal(lp)}
                       >

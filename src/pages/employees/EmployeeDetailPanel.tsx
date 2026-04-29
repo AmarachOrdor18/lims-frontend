@@ -64,6 +64,12 @@ export const EmployeeDetailPanel: React.FC<EmployeeDetailPanelProps> = ({
 
   const handleUpdateStatus = async (newStatus: 'ACTIVE' | 'INACTIVE') => {
     if (!employeeId) return;
+    if (newStatus === 'INACTIVE') {
+      const confirmed = window.confirm(
+        `Are you sure you want to mark ${employee?.first_name} ${employee?.last_name} as inactive?${assignedLaptop ? `\n\nNote: This employee still has ${assignedLaptop.asset_tag} assigned.` : ''}`
+      );
+      if (!confirmed) return;
+    }
     try {
       await api.patch(`/employees/${employeeId}/status`, { status: newStatus });
       toast.success(`Employee marked as ${newStatus.toLowerCase()}`);

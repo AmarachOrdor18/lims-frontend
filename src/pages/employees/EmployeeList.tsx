@@ -20,12 +20,13 @@ import type { Employee } from '../../types';
 interface EmployeeFilters {
   name:          string;
   email:         string;
+  asset_tag:     string;
   departments:   string[];
   statuses:      string[];
 }
 
 const EMPTY_FILTERS: EmployeeFilters = {
-  name: '', email: '', departments: [], statuses: [],
+  name: '', email: '', asset_tag: '', departments: [], statuses: [],
 };
 
 const DEFAULT_DEPARTMENTS = [
@@ -62,7 +63,7 @@ function FilterSelectSingle({ label, options, value, allLabel, onChange }: {
         className="form-select"
         value={value}
         onChange={e => onChange(e.target.value)}
-        style={{ width: '100%', background: 'var(--bg-surface)', border: `1px solid var(--border-default)`, borderRadius: 5, padding: '8px 10px', color: 'var(--text-primary)', fontSize: 13 }}
+        style={{ width: '100%', backgroundColor: 'var(--bg-surface)', border: `1px solid var(--border-default)`, borderRadius: 5, padding: '8px 10px', color: 'var(--text-primary)', fontSize: 13 }}
       >
         <option value="">{allLabel}</option>
         {options.map(o => (
@@ -85,7 +86,7 @@ function FilterSelect({ label, options, selected, onChange }: {
         className="form-select"
         value={selected[0] ?? ''}
         onChange={e => onChange(e.target.value ? [e.target.value] : [])}
-        style={{ width: '100%', background: 'var(--bg-surface)', border: `1px solid var(--border-default)`, borderRadius: 5, padding: '8px 10px', color: 'var(--text-primary)', fontSize: 13 }}
+        style={{ width: '100%', backgroundColor: 'var(--bg-surface)', border: `1px solid var(--border-default)`, borderRadius: 5, padding: '8px 10px', color: 'var(--text-primary)', fontSize: 13 }}
       >
         <option value="">All Departments</option>
         {options.map(o => (
@@ -154,6 +155,7 @@ export const EmployeeList: React.FC = () => {
       if (filters.departments.length)    q += `&department=${filters.departments.join(',')}`;
       if (filters.name)                  q += `&name=${encodeURIComponent(filters.name)}`;
       if (filters.email)                 q += `&email=${encodeURIComponent(filters.email)}`;
+      if (filters.asset_tag)             q += `&asset_tag=${encodeURIComponent(filters.asset_tag)}`;
       q += `&sort_by=${sortConfig.key}&sort_dir=${sortConfig.direction}`;
       return api.get(`/employees${q}`, signal);
     },
@@ -207,7 +209,7 @@ export const EmployeeList: React.FC = () => {
   const resetFilters = () => { setFilters(EMPTY_FILTERS); setPendingFilters(EMPTY_FILTERS); };
 
   const hasFilters =
-    !!(filters.name || filters.email ||
+    !!(filters.name || filters.email || filters.asset_tag ||
        filters.departments.length || filters.statuses.length);
 
   const totalPages = Math.ceil(total / 20) || 1;
@@ -333,6 +335,15 @@ export const EmployeeList: React.FC = () => {
                   style={{ width: '100%', background: 'var(--bg-base)', border: `1px solid var(--border-default)`, borderRadius: 5, padding: '8px 10px', color: 'var(--text-primary)', fontSize: 13 }}
                 />
               </div>
+              <div>
+                <span style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 4, display: 'block', textTransform: 'uppercase' }}>Asset Tag</span>
+                <input
+                  value={pendingFilters.asset_tag}
+                  onChange={e => setPendingFilters(f => ({ ...f, asset_tag: e.target.value }))}
+                  placeholder="Search by asset tag…"
+                  style={{ width: '100%', background: 'var(--bg-base)', border: `1px solid var(--border-default)`, borderRadius: 5, padding: '8px 10px', color: 'var(--text-primary)', fontSize: 13 }}
+                />
+              </div>
             </div>
           </AccordionSection>
           <div style={{ display: 'flex', gap: 8, padding: '12px 20px', justifyContent: 'flex-end' }}>
@@ -353,8 +364,9 @@ export const EmployeeList: React.FC = () => {
         {hasFilters && (
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, padding: '8px 16px', borderBottom: `1px solid var(--border-default)`, alignItems: 'center' }}>
             <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>Active:</span>
-            {filters.name  && <Tag label={`Name: ${filters.name}`}   onRemove={() => setFilters(f => ({ ...f, name: '' }))} />}
-            {filters.email && <Tag label={`Email: ${filters.email}`} onRemove={() => setFilters(f => ({ ...f, email: '' }))} />}
+            {filters.name      && <Tag label={`Name: ${filters.name}`}       onRemove={() => setFilters(f => ({ ...f, name: '' }))} />}
+            {filters.email     && <Tag label={`Email: ${filters.email}`}     onRemove={() => setFilters(f => ({ ...f, email: '' }))} />}
+            {filters.asset_tag && <Tag label={`Asset: ${filters.asset_tag}`} onRemove={() => setFilters(f => ({ ...f, asset_tag: '' }))} />}
             {filters.departments.map(d    => <Tag key={d} label={d} onRemove={() => setFilters(f => ({ ...f, departments:    f.departments.filter(x => x !== d) }))} />)}
             {filters.statuses.map(s       => <Tag key={s} label={s} onRemove={() => setFilters(f => ({ ...f, statuses:       f.statuses.filter(x => x !== s) }))} />)}
           </div>

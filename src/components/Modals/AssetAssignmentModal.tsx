@@ -57,7 +57,9 @@ export const AssetAssignmentModal: React.FC<AssetAssignmentModalProps> = ({
   const fetchEmployees = async () => {
     try {
       const res = await api.get('/employees?status=ACTIVE&limit=100');
-      setEmployees(Array.isArray(res.data) ? res.data : []);
+      const allEmps = Array.isArray(res.data) ? res.data : [];
+      // Only show people that don't have computers
+      setEmployees(allEmps.filter((e: any) => !e.assigned_asset_tag));
     } catch {
       setError('Failed to load employees. Please try again.');
     }

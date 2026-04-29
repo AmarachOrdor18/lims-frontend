@@ -78,10 +78,10 @@
   padding: 6px 14px;
 }
 
-/* Dashboard Grid — 3 columns: Alerts | Recent | Breakdown */
+/* Dashboard Grid — 2 columns: Recent | Breakdown */
 .dashboard-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(2, 1fr);
   gap: 16px;
   align-items: start;
 }

@@ -8,11 +8,11 @@ import {
   UserCheck,
   History,
   Plus,
-  ClipboardList
+  ClipboardList,
+  Bell
 } from 'lucide-react';
 import { api } from '../api';
 import { format } from 'date-fns';
-import { toast } from 'sonner';
 import { useAuthStore } from '../store/authStore';
 import type { DashboardSummary } from '../types';
 import './Dashboard.css';
@@ -21,7 +21,6 @@ export const Dashboard: React.FC = () => {
   const navigate = useNavigate();
   const { user } = useAuthStore();
   const [summary, setSummary] = useState<DashboardSummary | null>(null);
-  const [alerts, setAlerts] = useState<any[]>([]);
   const [recent, setRecent] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -32,17 +31,11 @@ export const Dashboard: React.FC = () => {
   const fetchDashboardData = async () => {
     try {
       setIsLoading(true);
-      const [summaryRes, alertsRes, recentRes] = await Promise.all([
+      const [summaryRes, recentRes] = await Promise.all([
         api.get('/dashboard/summary'),
-        api.get('/dashboard/alerts'),
         api.get('/dashboard/recent'),
       ]);
       if (summaryRes.data) setSummary(summaryRes.data.data || summaryRes.data);
-      if (alertsRes.data && Array.isArray(alertsRes.data.data)) {
-        setAlerts(alertsRes.data.data);
-      } else if (Array.isArray(alertsRes.data)) {
-        setAlerts(alertsRes.data);
-      }
       if (recentRes.data && Array.isArray(recentRes.data.data)) {
         setRecent(recentRes.data.data);
       } else if (Array.isArray(recentRes.data)) {
@@ -60,19 +53,7 @@ export const Dashboard: React.FC = () => {
     return Math.round((value / summary.total) * 100);
   };
 
-  const handleResolveIssue = async (alert: any) => {
-    try {
-      await api.post('/dashboard/resolve-alert', {
-        laptop_id: alert.laptop_id,
-        employee_id: alert.employee_id,
-      });
-      toast.success('Resolution reminder sent to ' + alert.employee_name);
-      navigate(`/laptops/${alert.laptop_id}`);
-    } catch (err) {
-      toast.error('Failed to send resolution alert');
-      navigate(`/laptops/${alert.laptop_id}`);
-    }
-  };
+
 
   if (isLoading) return <div style={{ padding: 80, textAlign: 'center' }}>Loading dashboard...</div>;
 
@@ -134,50 +115,7 @@ export const Dashboard: React.FC = () => {
       </div>
 
       <div className="dashboard-grid">
-        {/* Column 1: Alerts */}
-        <div className="dashboard-section">
-          <div className="dashboard-section-header">
-            <div className="dashboard-section-title">
-              <AlertTriangle size={16} className="text-warning" />
-              <h2>System Alerts</h2>
-            </div>
-            {alerts.length > 0 && <span className="badge badge-error">{alerts.length}</span>}
-          </div>
-
-          <div className="card dashboard-alerts-card" style={{ padding: '16px' }}>
-            {alerts.length === 0 ? (
-              <div className="dashboard-no-alerts">
-                <CheckCircle size={18} />
-                No inventory discrepancies detected.
-              </div>
-            ) : (
-              <div className="alerts-list">
-                {alerts.map((alert, idx) => (
-                  <div key={idx} className="alert-item">
-                    <div className="alert-icon-wrap">
-                      <AlertTriangle size={16} className="text-warning" />
-                    </div>
-                    <div className="alert-body">
-                      <div className="alert-headline">Device Retrieval Required</div>
-                      <div className="alert-detail">
-                        <strong>{alert.employee_name}</strong> ({alert.employee_status}) still holds{' '}
-                        <strong>{alert.brand} {alert.model}</strong>.
-                      </div>
-                      <button
-                        className="btn btn-primary btn-sm"
-                        onClick={() => handleResolveIssue(alert)}
-                      >
-                        Resolve Issue
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Column 2: Recent Assignments */}
+        {/* Column 1: Recent Assignments */}
         <div className="dashboard-section">
           <div className="dashboard-section-header">
             <div className="dashboard-section-title">
@@ -200,7 +138,7 @@ export const Dashboard: React.FC = () => {
                   No recent assignments found.
                 </div>
               ) : (
-                recent.map((item) => (
+                recent.slice(0, 4).map((item) => (
                   <div
                     key={item.id}
                     className="recent-assignment-row"
@@ -231,13 +169,20 @@ export const Dashboard: React.FC = () => {
           </div>
         </div>
 
-        {/* Column 3: Breakdown */}
+        {/* Column 2: Breakdown */}
         <div className="dashboard-section">
           <div className="dashboard-section-header">
             <div className="dashboard-section-title">
               <Monitor size={16} style={{ color: 'var(--accent-green)' }} />
               <h2>Inventory Breakdown</h2>
             </div>
+            <button
+              className="btn btn-ghost btn-sm"
+              style={{ fontSize: 12 }}
+              onClick={() => navigate('/notifications')}
+            >
+              <Bell size={12} /> Alerts
+            </button>
           </div>
 
           <div className="card" style={{ padding: '24px' }}>
