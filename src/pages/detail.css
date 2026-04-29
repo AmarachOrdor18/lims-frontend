@@ -56,13 +56,27 @@
 @media (max-width: 640px) {
   .detail-buttons-group {
     display: grid;
-    grid-template-columns: 1fr;
+    grid-template-columns: 1fr 1fr;
     gap: 8px;
+  }
+
+  /* Primary actions span full width for prominence */
+  .detail-buttons-group .btn-primary {
+    grid-column: 1 / -1;
+    padding: 12px 14px;
+    font-size: 14px;
+    font-weight: 700;
+  }
+
+  /* Warning/success actions also span full width */
+  .detail-buttons-group .btn-warning,
+  .detail-buttons-group .btn-success {
+    grid-column: 1 / -1;
   }
   
   .detail-buttons-group .btn {
     width: 100%;
-    padding: 8px 12px;
+    padding: 10px 12px;
     font-size: 12px;
   }
 }

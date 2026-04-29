@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { AlertTriangle, CheckCircle } from 'lucide-react';
 import { Modal } from '../UI/Modal';
 import { ConfirmModal } from '../UI/ConfirmModal';
@@ -22,6 +22,8 @@ export const AssetAssignmentModal: React.FC<AssetAssignmentModalProps> = ({
   const [search, setSearch] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
   // Warning state — when selected employee already has a laptop
   const [showDoubleAssignWarning, setShowDoubleAssignWarning] = useState(false);
@@ -34,9 +36,23 @@ export const AssetAssignmentModal: React.FC<AssetAssignmentModalProps> = ({
       setSearch('');
       setError('');
       setSelectedEmpHasLaptop(null);
+      setDropdownOpen(false);
       fetchEmployees();
     }
   }, [isOpen]);
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setDropdownOpen(false);
+      }
+    };
+    if (dropdownOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [dropdownOpen]);
 
   const fetchEmployees = async () => {
     try {
@@ -179,37 +195,90 @@ export const AssetAssignmentModal: React.FC<AssetAssignmentModalProps> = ({
             </div>
           )}
 
-          {/* Search */}
-          <div className="form-group">
-            <label className="form-label">Search Employee</label>
+          {/* Select Employee */}
+          <div className="form-group" ref={dropdownRef} style={{ position: 'relative' }}>
+            <label className="form-label">Select Employee *</label>
             <input
               type="text"
               className="form-input"
-              placeholder="Name, email or department…"
+              placeholder="Search by name, email or department…"
               value={search}
-              onChange={e => setSearch(e.target.value)}
-              style={{ width: '100%', marginTop: 6 }}
-            />
-          </div>
-
-          {/* Select Employee */}
-          <div className="form-group">
-            <label className="form-label">Select Employee *</label>
-            <select
-              className="form-input"
-              value={employeeId}
-              onChange={e => handleSelectEmployee(e.target.value)}
+              onChange={e => { setSearch(e.target.value); setDropdownOpen(true); }}
+              onFocus={() => setDropdownOpen(true)}
               style={{ width: '100%', marginTop: 6 }}
               disabled={laptop.status === 'RETIRED'}
-            >
-              <option value="">Choose an employee…</option>
-              {filteredEmps.map(e => (
-                <option key={e.id} value={e.id}>
-                  {e.first_name} {e.last_name} · {e.department || 'No dept'}
-                  {(e as any).assigned_asset_tag ? ` · has ${(e as any).assigned_asset_tag}` : ''}
-                </option>
-              ))}
-            </select>
+            />
+
+            {/* Selected employee display */}
+            {employeeId && selectedEmp && !dropdownOpen && (
+              <div style={{
+                marginTop: 8,
+                padding: '10px 14px',
+                background: 'var(--accent-green-surface)',
+                border: '1px solid rgba(37, 99, 235, 0.2)',
+                borderRadius: 'var(--radius-md)',
+                fontSize: 13,
+                color: 'var(--accent-green)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 8,
+              }}>
+                <CheckCircle size={14} />
+                {selectedEmp.first_name} {selectedEmp.last_name} · {selectedEmp.department || 'No dept'}
+                {(selectedEmp as any).assigned_asset_tag ? ` · has ${(selectedEmp as any).assigned_asset_tag}` : ''}
+              </div>
+            )}
+
+            {/* Custom dropdown list */}
+            {dropdownOpen && (
+              <div style={{
+                position: 'absolute',
+                top: '100%',
+                left: 0,
+                right: 0,
+                maxHeight: 200,
+                overflowY: 'auto',
+                background: 'var(--bg-elevated)',
+                border: '1px solid var(--border-default)',
+                borderRadius: 'var(--radius-md)',
+                boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
+                zIndex: 10,
+                marginTop: 4,
+              }}>
+                {filteredEmps.length === 0 ? (
+                  <div style={{ padding: '16px', fontSize: 13, color: 'var(--text-muted)', textAlign: 'center' }}>
+                    No employees found
+                  </div>
+                ) : (
+                  filteredEmps.map(e => (
+                    <div
+                      key={e.id}
+                      onClick={() => { handleSelectEmployee(e.id); setDropdownOpen(false); }}
+                      style={{
+                        padding: '10px 14px',
+                        cursor: 'pointer',
+                        fontSize: 13,
+                        color: e.id === employeeId ? 'var(--accent-green)' : 'var(--text-primary)',
+                        background: e.id === employeeId ? 'var(--accent-green-surface)' : 'transparent',
+                        borderBottom: '1px solid var(--border-subtle)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 8,
+                        transition: 'background 150ms ease',
+                      }}
+                      onMouseEnter={(ev) => { if (e.id !== employeeId) ev.currentTarget.style.background = 'var(--bg-hover)'; }}
+                      onMouseLeave={(ev) => { ev.currentTarget.style.background = e.id === employeeId ? 'var(--accent-green-surface)' : 'transparent'; }}
+                    >
+                      {e.id === employeeId && <CheckCircle size={14} style={{ flexShrink: 0 }} />}
+                      <span>
+                        {e.first_name} {e.last_name} · {e.department || 'No dept'}
+                        {(e as any).assigned_asset_tag ? ` · has ${(e as any).assigned_asset_tag}` : ''}
+                      </span>
+                    </div>
+                  ))
+                )}
+              </div>
+            )}
           </div>
 
           {/* Warning: selected employee already has a laptop */}
