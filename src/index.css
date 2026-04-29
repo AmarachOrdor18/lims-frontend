@@ -151,6 +151,95 @@ ul { list-style: none; }
 ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: var(--radius-full); }
 ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.2); }
 
+/* ── Error Alert ───────────────────────────────────────────── */
+.error-alert {
+  display: flex;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: var(--radius-md);
+  background: var(--danger-surface);
+  border: 1px solid var(--danger);
+}
+
+.error-alert.error {
+  background: var(--danger-surface);
+  border: 1px solid var(--danger);
+  color: var(--danger);
+}
+
+.error-alert.warning {
+  background: var(--warning-surface);
+  border: 1px solid var(--warning);
+  color: var(--warning);
+}
+
+.error-alert-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: inherit;
+  margin-bottom: 2px;
+}
+
+.error-alert-body {
+  font-size: 12px;
+  color: inherit;
+  line-height: 1.4;
+}
+
+/* ── Confirm Modal ──────────────────────────────────────────– */
+.confirm-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9998;
+}
+
+.confirm-modal {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: var(--bg-surface);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
+  max-width: 420px;
+  width: 90vw;
+  max-height: 80vh;
+  overflow-y: auto;
+  z-index: 9999;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
+}
+
+.confirm-modal-header {
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--border-default);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.confirm-modal-body {
+  padding: 16px 24px;
+  font-size: 14px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+.confirm-modal-footer {
+  padding: 16px 24px;
+  border-top: 1px solid var(--border-default);
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
 /* ── Layout ────────────────────────────────────────────────── */
 .app-shell {
   display: flex;
