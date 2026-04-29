@@ -7,35 +7,48 @@ interface ConfirmModalProps {
   message: React.ReactNode;
   confirmText?: string;
   cancelText?: string;
-  isDangerous?: boolean;
+  confirmLabel?: string;
+  cancelLabel?: string;
+  variant?: 'default' | 'warning' | 'danger';
   isLoading?: boolean;
   onConfirm: () => void;
-  onCancel: () => void;
+  onCancel?: () => void;
+  onClose?: () => void;
 }
 
 export const ConfirmModal: React.FC<ConfirmModalProps> = ({
   isOpen,
   title,
   message,
-  confirmText = 'Confirm',
-  cancelText = 'Cancel',
-  isDangerous = false,
+  confirmText,
+  cancelText,
+  confirmLabel,
+  cancelLabel,
+  variant = 'default',
   isLoading = false,
   onConfirm,
   onCancel,
+  onClose,
 }) => {
   if (!isOpen) return null;
 
+  const handleCancel = onCancel ?? onClose;
+  const cancelLabelText = cancelText ?? cancelLabel ?? 'Cancel';
+  const confirmLabelText = confirmText ?? confirmLabel ?? 'Confirm';
+  const isDangerous = variant === 'danger';
+  const buttonClass = variant === 'danger' ? 'btn-danger' : variant === 'warning' ? 'btn-warning' : 'btn-primary';
+  const iconColor = variant === 'danger' ? 'var(--danger)' : variant === 'warning' ? 'var(--warning)' : 'var(--accent-green)';
+
   return (
     <>
-      <div className="confirm-modal-overlay" onClick={onCancel} />
+      <div className="confirm-modal-overlay" onClick={handleCancel} />
       <div className="confirm-modal">
         <div className="confirm-modal-header">
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             {isDangerous ? (
-              <AlertTriangle size={20} style={{ color: 'var(--danger)' }} />
+              <AlertTriangle size={20} style={{ color: iconColor }} />
             ) : (
-              <CheckCircle size={20} style={{ color: 'var(--accent-green)' }} />
+              <CheckCircle size={20} style={{ color: iconColor }} />
             )}
             <h2 style={{ fontSize: 16, fontWeight: 700, margin: 0 }}>
               {title}
@@ -56,17 +69,17 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
         <div className="confirm-modal-footer">
           <button
             className="btn btn-ghost"
-            onClick={onCancel}
+            onClick={handleCancel}
             disabled={isLoading}
           >
-            {cancelText}
+            {cancelLabelText}
           </button>
           <button
-            className={`btn ${isDangerous ? 'btn-danger' : 'btn-primary'}`}
+            className={`btn ${buttonClass}`}
             onClick={onConfirm}
             disabled={isLoading}
           >
-            {isLoading ? 'Loading...' : confirmText}
+            {isLoading ? 'Loading...' : confirmLabelText}
           </button>
         </div>
       </div>

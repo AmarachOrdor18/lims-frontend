@@ -20,6 +20,7 @@ import type { Laptop } from '../../types';
 
 // ─── Filter state type ────────────────────────────────────────────────────────
 interface LaptopFilters {
+  asset_tag:    string;
   model:        string;
   serial_number: string;
   brands:       string[];
@@ -28,7 +29,7 @@ interface LaptopFilters {
 }
 
 const EMPTY_FILTERS: LaptopFilters = {
-  model: '', serial_number: '', brands: [], statuses: [], conditions: [],
+  asset_tag: '', model: '', serial_number: '', brands: [], statuses: [], conditions: [],
 };
 
 const BRAND_OPTIONS   = ['Dell','Apple','HP','Lenovo','Microsoft','ASUS','Acer','Samsung'];
@@ -73,6 +74,7 @@ function FilterSelect({
         {label}
       </span>
       <select
+        className="form-select"
         value={value}
         onChange={e => onChange(e.target.value)}
         style={{
@@ -173,6 +175,7 @@ export const LaptopList: React.FC = () => {
       if (filters.statuses.length)      q += `&status=${filters.statuses.join(',')}`;
       if (filters.conditions.length)    q += `&condition=${filters.conditions.join(',')}`;
       if (filters.brands.length)        q += `&brand=${filters.brands.join(',')}`;
+      if (filters.asset_tag)            q += `&asset_tag=${encodeURIComponent(filters.asset_tag)}`;
       if (filters.model)                q += `&model=${encodeURIComponent(filters.model)}`;
       if (filters.serial_number)        q += `&serial_number=${encodeURIComponent(filters.serial_number)}`;
       q += `&sort_by=${sortConfig.key}&sort_dir=${sortConfig.direction}`;
@@ -235,7 +238,7 @@ export const LaptopList: React.FC = () => {
   };
 
   const hasFilters =
-    !!(filters.model || filters.serial_number ||
+    !!(filters.asset_tag || filters.model || filters.serial_number ||
        filters.brands.length || filters.statuses.length || filters.conditions.length);
 
   const openAssignModal = (laptop: Laptop) => {
@@ -302,12 +305,12 @@ export const LaptopList: React.FC = () => {
     <div style={{ background: 'var(--bg-base)', minHeight: '100vh', color: 'var(--text-primary)', padding: '12px 10px' }}>
 
       {/* PAGE HEADER */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20, flexWrap: 'wrap' }}>
         <div>
           <h1 style={{ fontSize: 22, fontWeight: 700, margin: 0 }}>Inventory</h1>
           <p style={{ fontSize: 13, color: 'var(--text-muted)', marginTop: 3 }}>{total} devices registered</p>
         </div>
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
           <button type="button" style={S.iconBtn()} title="Refresh" onClick={() => refetch()}><RefreshCw size={14} /></button>
           <button type="button" style={S.iconBtn(filterOpen)} title="Filters"
             onClick={() => { setPendingFilters(filters); setFilterOpen(o => !o); }}>
@@ -328,8 +331,8 @@ export const LaptopList: React.FC = () => {
 
           <CSVImporter
             onImport={handleImport}
-            templateHeaders={['Brand','Model','Serial Number','Purchase Date','Condition','Status']}
-            label="Import CSV"
+            sampleHeaders={['Brand','Model','Serial Number','Purchase Date','Condition','Status']}
+            title="Laptops"
           />
 
           <button
@@ -359,6 +362,12 @@ export const LaptopList: React.FC = () => {
           </AccordionSection>
           <AccordionSection title="Search">
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <div>
+                <span style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 4, display: 'block', textTransform: 'uppercase' }}>Asset Tag</span>
+                <input value={pendingFilters.asset_tag} onChange={e => setPendingFilters(f => ({ ...f, asset_tag: e.target.value }))}
+                  placeholder="Search asset tag…"
+                  style={{ width: '100%', background: 'var(--bg-base)', border: `1px solid var(--border-default)`, borderRadius: 5, padding: '8px 10px', color: 'var(--text-primary)', fontSize: 13 }} />
+              </div>
               <div>
                 <span style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 4, display: 'block', textTransform: 'uppercase' }}>Model</span>
                 <input value={pendingFilters.model} onChange={e => setPendingFilters(f => ({ ...f, model: e.target.value }))}
@@ -392,6 +401,7 @@ export const LaptopList: React.FC = () => {
       {hasFilters && (
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, padding: '8px 16px', borderBottom: `1px solid var(--border-default)`, alignItems: 'center' }}>
           <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>Active:</span>
+          {filters.asset_tag     && <Tag label={`Asset Tag: ${filters.asset_tag}`} onRemove={() => setFilters(f => ({ ...f, asset_tag: '' }))} />}
           {filters.model         && <Tag label={`Model: ${filters.model}`}           onRemove={() => setFilters(f => ({ ...f, model: '' }))} />}
           {filters.serial_number && <Tag label={`S/N: ${filters.serial_number}`}     onRemove={() => setFilters(f => ({ ...f, serial_number: '' }))} />}
           {filters.brands.map(b     => <Tag key={b} label={b}  onRemove={() => setFilters(f => ({ ...f, brands:     f.brands.filter(x => x !== b) }))} />)}
@@ -455,10 +465,10 @@ export const LaptopList: React.FC = () => {
                           onClick={() => { setDetailLaptopId(lp.id); setDetailPanelOpen(true); }}>
                           <Eye size={13} />
                         </button>
-                        {lp.status === 'AVAILABLE' && (
+                                {lp.status === 'AVAILABLE' && (
                           <button
                             type="button"
-                            style={{ ...S.actBtn(), color: 'var(--accent-green)', borderColor: 'var(--accent-green)' }}
+                            style={{ ...S.actBtn(), color: 'var(--status-available-text)', borderColor: 'var(--status-available-text)', background: 'rgba(34, 197, 94, 0.08)' }}
                             title="Assign Laptop"
                             onClick={() => openAssignModal(lp)}
                           >
@@ -468,7 +478,7 @@ export const LaptopList: React.FC = () => {
                         {lp.status === 'ASSIGNED' && (
                           <button
                             type="button"
-                            style={{ ...S.actBtn(), color: '#60a5fa', borderColor: '#60a5fa' }}
+                            style={{ ...S.actBtn(), color: 'var(--status-assigned-text)', borderColor: 'var(--status-assigned-text)', background: 'rgba(96, 165, 250, 0.08)' }}
                             title="Reassign Laptop"
                             onClick={() => openAssignModal(lp)}
                           >

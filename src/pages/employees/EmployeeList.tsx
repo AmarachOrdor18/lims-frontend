@@ -59,6 +59,7 @@ function FilterSelectSingle({ label, options, value, allLabel, onChange }: {
     <div>
       <span style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 6, display: 'block', textTransform: 'uppercase', letterSpacing: '.5px' }}>{label}</span>
       <select
+        className="form-select"
         value={value}
         onChange={e => onChange(e.target.value)}
         style={{ width: '100%', background: 'var(--bg-surface)', border: `1px solid var(--border-default)`, borderRadius: 5, padding: '8px 10px', color: 'var(--text-primary)', fontSize: 13 }}
@@ -81,6 +82,7 @@ function FilterSelect({ label, options, selected, onChange }: {
     <div>
       <span style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 6, display: 'block', textTransform: 'uppercase', letterSpacing: '.5px' }}>{label}</span>
       <select
+        className="form-select"
         value={selected[0] ?? ''}
         onChange={e => onChange(e.target.value ? [e.target.value] : [])}
         style={{ width: '100%', background: 'var(--bg-surface)', border: `1px solid var(--border-default)`, borderRadius: 5, padding: '8px 10px', color: 'var(--text-primary)', fontSize: 13 }}
@@ -150,8 +152,8 @@ export const EmployeeList: React.FC = () => {
       let q = `?page=${page}&limit=20`;
       if (filters.statuses.length)       q += `&status=${filters.statuses.join(',')}`;
       if (filters.departments.length)    q += `&department=${filters.departments.join(',')}`;
-      if (filters.name)                  q += `&search=${encodeURIComponent(filters.name)}`;
-      if (filters.email)                 q += `&search=${encodeURIComponent(filters.email)}`;
+      if (filters.name)                  q += `&name=${encodeURIComponent(filters.name)}`;
+      if (filters.email)                 q += `&email=${encodeURIComponent(filters.email)}`;
       q += `&sort_by=${sortConfig.key}&sort_dir=${sortConfig.direction}`;
       return api.get(`/employees${q}`, signal);
     },
@@ -261,12 +263,12 @@ export const EmployeeList: React.FC = () => {
     <div style={{ background: 'var(--bg-base)', minHeight: '100vh', color: 'var(--text-primary)', padding: '12px 10px' }}>
 
       {/* PAGE HEADER */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20, flexWrap: 'wrap' }}>
         <div>
           <h1 style={{ fontSize: 22, fontWeight: 700, margin: 0 }}>People</h1>
           <p style={{ fontSize: 13, color: 'var(--text-muted)', marginTop: 3 }}>{total} staff members listed</p>
         </div>
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
           <button type="button" style={S.iconBtn()} title="Refresh" onClick={() => refetch()}><RefreshCw size={14} /></button>
 
           <button type="button" style={S.iconBtn(filterOpen)} title="Filters"
@@ -288,8 +290,8 @@ export const EmployeeList: React.FC = () => {
 
           <CSVImporter
             onImport={handleImport}
-            templateHeaders={['First Name','Last Name','Email','Department','Job Title','Location','Entity','Staff Type','Seniority']}
-            label="Import CSV"
+            sampleHeaders={['First Name','Last Name','Email','Department','Job Title','Location','Entity','Staff Type','Seniority']}
+            title="Employees"
           />
 
           <button

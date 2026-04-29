@@ -5,7 +5,7 @@ import Papa from 'papaparse';
 interface CSVImporterProps {
   onImport: (data: any[]) => Promise<void>;
   sampleHeaders: string[];
-  sampleRows: string[][];
+  sampleRows?: string[][];
   title: string;
   id?: string;
 }
@@ -13,7 +13,7 @@ interface CSVImporterProps {
 export const CSVImporter: React.FC<CSVImporterProps> = ({
   onImport,
   sampleHeaders,
-  sampleRows,
+  sampleRows = [],
   title,
   id
 }) => {
