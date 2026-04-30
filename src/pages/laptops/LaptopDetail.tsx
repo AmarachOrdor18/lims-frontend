@@ -10,6 +10,7 @@ import { api } from '../../api';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 import { AssetAssignmentModal } from '../../components/Modals/AssetAssignmentModal';
+import { ConfirmModal } from '../../components/UI/ConfirmModal';
 import type { Laptop, Employee } from '../../types';
 import '../detail.css';
 
@@ -21,6 +22,8 @@ export const LaptopDetail: React.FC = () => {
   const [history, setHistory] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showAssignModal, setShowAssignModal] = useState(false);
+  const [confirmRetire, setConfirmRetire] = useState(false);
+  const [isActing, setIsActing] = useState(false);
 
   useEffect(() => {
     fetchLaptopData();
@@ -53,18 +56,28 @@ export const LaptopDetail: React.FC = () => {
   };
 
   const handleUpdateStatus = async (status: string) => {
+    if (status === 'RETIRED') {
+      setConfirmRetire(true);
+      return;
+    }
+    await performStatusUpdate(status);
+  };
+
+  const performStatusUpdate = async (status: string) => {
     try {
-      if (status === 'RETIRED' && !window.confirm('Are you sure you want to archive this system? It will be removed from active inventory.')) return;
-      
+      setIsActing(true);
       await api.patch(`/laptops/${id}/status`, { 
         status,
         ...(status === 'RETIRED' ? { condition: 'RETIRED' } : {})
       });
       
       toast.success(status === 'RETIRED' ? 'System archived successfully' : 'Status updated');
+      setConfirmRetire(false);
       fetchLaptopData();
     } catch (e) {
       toast.error('Failed to update status');
+    } finally {
+      setIsActing(false);
     }
   };
 
@@ -278,7 +291,17 @@ export const LaptopDetail: React.FC = () => {
         isOpen={showAssignModal}
         onClose={() => setShowAssignModal(false)}
         laptop={laptop}
-        onSuccess={fetchLaptopData}
+        onSuccess={() => { fetchLaptopData(); }}
+      />
+      <ConfirmModal
+        isOpen={confirmRetire}
+        onClose={() => setConfirmRetire(false)}
+        onConfirm={() => performStatusUpdate('RETIRED')}
+        title="Archive Device"
+        message={`Are you sure you want to archive ${laptop?.asset_tag}? This will remove it from active inventory and set its status to Retired.`}
+        confirmLabel="Yes, Archive"
+        variant="danger"
+        isLoading={isActing}
       />
     </div>
   );

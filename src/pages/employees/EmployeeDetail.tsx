@@ -2,10 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
   ArrowLeft, Edit, Mail, Building2, Calendar,
-  Monitor, AlertTriangle, UserX, UserCheck, User, Briefcase, MapPin, Globe
+  Monitor, UserX, UserCheck, User, Briefcase, MapPin, Globe
 } from 'lucide-react';
 import { Badge } from '../../components/UI/Badge';
-import { Modal } from '../../components/UI/Modal';
+import { ConfirmModal } from '../../components/UI/ConfirmModal';
 import { api } from '../../api';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
@@ -19,7 +19,8 @@ export const EmployeeDetail: React.FC = () => {
   const [assignedLaptop, setAssignedLaptop] = useState<Laptop | null>(null);
   const [history, setHistory] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [confirmDeactivate, setConfirmDeactivate] = useState(false);
+  const [confirmInactive, setConfirmInactive] = useState(false);
+  const [isActing, setIsActing] = useState(false);
 
   useEffect(() => {
     fetchEmployeeData();
@@ -54,15 +55,24 @@ export const EmployeeDetail: React.FC = () => {
   };
 
   const handleUpdateStatus = async (newStatus: 'ACTIVE' | 'INACTIVE') => {
-    if (newStatus === 'INACTIVE' && assignedLaptop) {
-      setConfirmDeactivate(true);
+    if (newStatus === 'INACTIVE') {
+      setConfirmInactive(true);
       return;
     }
+    await performStatusUpdate(newStatus);
+  };
+
+  const performStatusUpdate = async (status: 'ACTIVE' | 'INACTIVE') => {
     try {
-      await api.patch(`/employees/${id}/status`, { status: newStatus });
+      setIsActing(true);
+      await api.patch(`/employees/${id}/status`, { status });
+      toast.success(`Employee marked as ${status.toLowerCase()}`);
+      setConfirmInactive(false);
       fetchEmployeeData();
     } catch (e) {
       toast.error('Failed to update status');
+    } finally {
+      setIsActing(false);
     }
   };
 
@@ -248,33 +258,25 @@ export const EmployeeDetail: React.FC = () => {
       </div>
 
       {/* Confirmation Modal */}
-      <Modal
-        isOpen={confirmDeactivate}
-        onClose={() => setConfirmDeactivate(false)}
-        title="Employee Has Active Laptop"
-        size="sm"
-        footer={
+      <ConfirmModal
+        isOpen={confirmInactive}
+        onClose={() => setConfirmInactive(false)}
+        onConfirm={() => performStatusUpdate('INACTIVE')}
+        title="Mark as Inactive"
+        message={
           <>
-            <button className="btn btn-ghost" onClick={() => setConfirmDeactivate(false)}>Cancel</button>
-            <button
-              id="confirm-goto-laptop-btn"
-              className="btn btn-warning"
-              style={{ background: 'var(--warning-surface)', color: 'var(--warning)', border: '1px solid rgba(245,158,11,0.2)' }}
-              onClick={() => { setConfirmDeactivate(false); navigate(`/laptops/${assignedLaptop?.id}`); }}
-            >
-              Go to Laptop
-            </button>
+            Are you sure you want to mark <strong>{fullName}</strong> as inactive?
+            {assignedLaptop && (
+              <div style={{ marginTop: 12, padding: 10, background: 'rgba(245, 158, 11, 0.1)', borderLeft: '3px solid #f59e0b', borderRadius: 4, color: '#f59e0b', fontSize: 13 }}>
+                <strong>Note:</strong> This employee still has <strong>{assignedLaptop.asset_tag}</strong> assigned.
+              </div>
+            )}
           </>
         }
-      >
-        <div className="alert alert-warning" style={{ marginBottom: 16 }}>
-          <AlertTriangle size={16} />
-          <div>
-            <strong>{fullName}</strong> still has <strong>{assignedLaptop?.asset_tag}</strong> assigned.
-            Please process a return before marking them inactive.
-          </div>
-        </div>
-      </Modal>
+        confirmLabel="Yes, Mark Inactive"
+        variant="warning"
+        isLoading={isActing}
+      />
     </div>
   );
 };

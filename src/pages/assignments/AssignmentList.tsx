@@ -12,6 +12,7 @@ import { toast }    from 'sonner';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { format }   from 'date-fns';
 import { AssetAssignmentModal } from '../../components/Modals/AssetAssignmentModal';
+import { ConfirmModal } from '../../components/UI/ConfirmModal';
 import type { Assignment, Laptop } from '../../types';
 
 // ─── Design tokens ────────────────────────────────────────────────────────────
@@ -131,6 +132,8 @@ export const AssignmentList: React.FC = () => {
 
   const [showAssignModal, setShowAssignModal] = useState(false);
   const [selectedLaptop,  setSelectedLaptop]  = useState<Laptop | null>(null);
+  const [confirmReturn,   setConfirmReturn]    = useState<{ id: string } | null>(null);
+  const [isActing,        setIsActing]        = useState(false);
 
   useEffect(() => { setPage(1); }, [laptopId, filters, sortConfig]);
 
@@ -177,14 +180,24 @@ export const AssignmentList: React.FC = () => {
   }
 
   // ── Actions ───────────────────────────────────────────────────────────────
-  const handleReturn = async (id: string) => {
-    if (!window.confirm('Mark this device as returned to inventory?')) return;
+  const handleReturn = (id: string) => {
+    setConfirmReturn({ id });
+  };
+
+  const performReturn = async () => {
+    if (!confirmReturn) return;
     try {
-      await api.patch(`/assignments/${id}/return`, {});
+      setIsActing(true);
+      await api.patch(`/assignments/${confirmReturn.id}/return`, {});
       toast.success('Device returned to inventory');
+      setConfirmReturn(null);
       queryClient.invalidateQueries({ queryKey: ['assignments'] });
       queryClient.invalidateQueries({ queryKey: ['laptops'] });
-    } catch { toast.error('Failed to process return'); }
+    } catch { 
+      toast.error('Failed to process return'); 
+    } finally {
+      setIsActing(false);
+    }
   };
 
   const handleReassign = (laptop: Laptop | undefined) => {
@@ -520,6 +533,17 @@ export const AssignmentList: React.FC = () => {
           }}
         />
       )}
+
+      <ConfirmModal
+        isOpen={!!confirmReturn}
+        onClose={() => setConfirmReturn(null)}
+        onConfirm={performReturn}
+        title="Return Device"
+        message="Mark this device as returned to inventory? It will become available for assignment again."
+        confirmLabel="Yes, Return"
+        variant="warning"
+        isLoading={isActing}
+      />
     </div>
   );
 };
