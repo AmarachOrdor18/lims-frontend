@@ -156,7 +156,7 @@ export const EmployeeList: React.FC = () => {
       let q = `?page=${page}&limit=20`;
       if (filters.statuses.length)       q += `&status=${filters.statuses.join(',')}`;
       if (filters.departments.length)    q += `&department=${filters.departments.join(',')}`;
-      if (filters.search)                q += `&search=${encodeURIComponent(filters.search)}`;
+      if (filters.search)                q += `&q=${encodeURIComponent(filters.search)}`;
       if (filters.name)                  q += `&name=${encodeURIComponent(filters.name)}`;
       if (filters.email)                 q += `&email=${encodeURIComponent(filters.email)}`;
       if (filters.asset_tag)             q += `&asset_tag=${encodeURIComponent(filters.asset_tag)}`;
@@ -167,12 +167,35 @@ export const EmployeeList: React.FC = () => {
     placeholderData: prev => prev,
   });
 
-  const employees: Employee[] = response?.data  ?? [];
-  const total:     number     = response?.total ?? 0;
+  const rawEmployees: Employee[] = response?.data  ?? [];
+  const total:        number     = response?.total ?? 0;
+
+  // ── Client-side filtering fallback ─────────────────────────────────────────
+  // We filter locally to ensure the UI is accurate even if backend filtering fails
+  const employees = rawEmployees.filter(emp => {
+    // Quick Search
+    if (filters.search) {
+      const s = filters.search.toLowerCase();
+      const match = `${emp.first_name} ${emp.last_name}`.toLowerCase().includes(s) ||
+                    emp.email.toLowerCase().includes(s) ||
+                    (emp as any).assigned_asset_tag?.toLowerCase().includes(s);
+      if (!match) return false;
+    }
+    // Name filter from panel
+    if (filters.name) {
+      const n = filters.name.toLowerCase();
+      if (!`${emp.first_name} ${emp.last_name}`.toLowerCase().includes(n)) return false;
+    }
+    // Laptop assignment status
+    if (filters.has_laptop === 'false' && (emp as any).assigned_asset_tag) return false;
+    if (filters.has_laptop === 'true' && !(emp as any).assigned_asset_tag) return false;
+    
+    return true;
+  });
 
   // Build dept options from live data
   useEffect(() => {
-    if (employees.length > 0) {
+    if (rawEmployees.length > 0) {
       const live = Array.from(new Set(employees.map((e: Employee) => e.department).filter(Boolean))) as string[];
       const merged = Array.from(new Set([...DEFAULT_DEPARTMENTS, ...live])).sort();
       setDeptOptions(merged.map(d => ({ label: d, value: d })));

@@ -188,7 +188,7 @@ export const LaptopList: React.FC = () => {
       if (filters.statuses.length)      q += `&status=${filters.statuses.join(',')}`;
       if (filters.conditions.length)    q += `&condition=${filters.conditions.join(',')}`;
       if (filters.brands.length)        q += `&brand=${filters.brands.join(',')}`;
-      if (filters.search)               q += `&search=${encodeURIComponent(filters.search)}`;
+      if (filters.search)               q += `&q=${encodeURIComponent(filters.search)}`;
       if (filters.asset_tag)            q += `&asset_tag=${encodeURIComponent(filters.asset_tag)}`;
       if (filters.model)                q += `&model=${encodeURIComponent(filters.model)}`;
       if (filters.serial_number)        q += `&serial_number=${encodeURIComponent(filters.serial_number)}`;
@@ -198,8 +198,25 @@ export const LaptopList: React.FC = () => {
     placeholderData: prev => prev,
   });
 
-  const laptops: Laptop[] = response?.data  ?? [];
-  const total:   number   = response?.total ?? 0;
+  const rawLaptops: Laptop[] = response?.data  ?? [];
+  const total:      number   = response?.total ?? 0;
+  
+  // ── Client-side filtering fallback ─────────────────────────────────────────
+  const laptops = rawLaptops.filter(lp => {
+    if (filters.search) {
+      const s = filters.search.toLowerCase();
+      const match = lp.asset_tag.toLowerCase().includes(s) || 
+                    lp.brand.toLowerCase().includes(s) || 
+                    lp.model.toLowerCase().includes(s) ||
+                    lp.serial_number.toLowerCase().includes(s);
+      if (!match) return false;
+    }
+    if (filters.asset_tag && !lp.asset_tag.toLowerCase().includes(filters.asset_tag.toLowerCase())) return false;
+    if (filters.model && !lp.model.toLowerCase().includes(filters.model.toLowerCase())) return false;
+    if (filters.serial_number && !lp.serial_number.toLowerCase().includes(filters.serial_number.toLowerCase())) return false;
+    
+    return true;
+  });
 
   // ── Excel export helper ────────────────────────────────────────────────────
   function downloadExcel(filename: string, rows: Laptop[]) {
