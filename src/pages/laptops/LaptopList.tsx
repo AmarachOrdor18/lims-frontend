@@ -333,6 +333,11 @@ export const LaptopList: React.FC = () => {
             <CSVImporter
               onImport={handleImport}
               sampleHeaders={['Brand','Model','Serial Number','Purchase Date','Condition','Status']}
+              sampleRows={[
+                ['Dell', 'XPS 15', 'SN12345', '2023-01-15', 'FUNCTIONAL', 'AVAILABLE'],
+                ['Apple', 'MacBook Pro', 'SN67890', '2023-05-20', 'FUNCTIONAL', 'ASSIGNED'],
+                ['HP', 'EliteBook', 'SN11223', '2022-11-10', 'FAULTY', 'RETIRED']
+              ]}
               title="Laptops"
             />
           </div>

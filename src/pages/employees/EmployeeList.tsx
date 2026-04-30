@@ -305,6 +305,11 @@ export const EmployeeList: React.FC = () => {
             <CSVImporter
               onImport={handleImport}
               sampleHeaders={['First Name','Last Name','Email','Department','Job Title','Location','Entity','Staff Type','Seniority']}
+              sampleRows={[
+                ['John', 'Doe', 'john.doe@example.com', 'Engineering', 'Software Engineer', 'Lagos, Nigeria', 'Qucoon', 'Staff', 'Associate'],
+                ['Jane', 'Smith', 'jane.smith@example.com', 'HR', 'HR Manager', 'Lagos, Nigeria', 'Qucoon', 'Staff', 'Senior'],
+                ['David', 'Wilson', 'david.wilson@example.com', 'Finance', 'Accountant', 'Lagos, Nigeria', 'Qucoon', 'Staff', 'Lead']
+              ]}
               title="Employees"
             />
           </div>

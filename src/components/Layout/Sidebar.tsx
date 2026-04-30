@@ -38,8 +38,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
             <Monitor size={18} />
           </div>
           <div>
-            <span className="sidebar-logo-text">LIMS</span>
-            <span className="sidebar-logo-badge">HR Tool</span>
+            <span className="sidebar-logo-text">Asset Desk</span>
+            <span className="sidebar-logo-badge">Admin Panel</span>
           </div>
         </div>
 
