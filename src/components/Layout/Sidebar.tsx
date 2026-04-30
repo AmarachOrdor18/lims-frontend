@@ -39,15 +39,17 @@ export const Sidebar: React.FC<SidebarProps> = ({
       <div className={`sidebar-overlay ${isOpen ? 'show' : ''}`} onClick={onClose} />
       <aside className={`sidebar ${isOpen ? 'mobile-show' : ''} ${isCollapsed ? 'collapsed' : ''}`}>
         <div className="sidebar-logo">
-          <div className="sidebar-logo-icon">
-            <Monitor size={18} />
-          </div>
-          {!isCollapsed && (
-            <div className="sidebar-logo-text-wrap">
-              <span className="sidebar-logo-text">Asset Desk</span>
-              <span className="sidebar-logo-badge">Admin Panel</span>
+          <div className="sidebar-logo-main">
+            <div className="sidebar-logo-icon">
+              <Monitor size={18} />
             </div>
-          )}
+            {!isCollapsed && (
+              <div className="sidebar-logo-text-wrap">
+                <span className="sidebar-logo-text">Asset Desk</span>
+                <span className="sidebar-logo-badge">Admin Panel</span>
+              </div>
+            )}
+          </div>
           
           <button 
             className="sidebar-collapse-toggle hide-on-mobile"
