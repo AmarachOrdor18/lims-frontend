@@ -330,7 +330,7 @@ export const EmployeeList: React.FC = () => {
 
           <button
             type="button"
-            style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px', background: 'var(--accent-green)', color: '#000', border: 'none', borderRadius: 6, fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
+            style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px', background: 'var(--accent-green)', color: '#fff', border: 'none', borderRadius: 6, fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
             onClick={() => { setFormEmployeeId(null); setFormPanelOpen(true); }}
           >
             <Plus size={14} /> Add Employee
