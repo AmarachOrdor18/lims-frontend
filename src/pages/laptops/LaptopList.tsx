@@ -21,6 +21,7 @@ import type { Laptop } from '../../types';
 
 // ─── Filter state type ────────────────────────────────────────────────────────
 interface LaptopFilters {
+  search:       string;
   asset_tag:    string;
   model:        string;
   serial_number: string;
@@ -30,7 +31,7 @@ interface LaptopFilters {
 }
 
 const EMPTY_FILTERS: LaptopFilters = {
-  asset_tag: '', model: '', serial_number: '', brands: [], statuses: [], conditions: [],
+  search: '', asset_tag: '', model: '', serial_number: '', brands: [], statuses: [], conditions: [],
 };
 
 const BRAND_OPTIONS   = ['Dell','Apple','HP','Lenovo','Microsoft','ASUS','Acer','Samsung'];
@@ -187,6 +188,7 @@ export const LaptopList: React.FC = () => {
       if (filters.statuses.length)      q += `&status=${filters.statuses.join(',')}`;
       if (filters.conditions.length)    q += `&condition=${filters.conditions.join(',')}`;
       if (filters.brands.length)        q += `&brand=${filters.brands.join(',')}`;
+      if (filters.search)               q += `&search=${encodeURIComponent(filters.search)}`;
       if (filters.asset_tag)            q += `&asset_tag=${encodeURIComponent(filters.asset_tag)}`;
       if (filters.model)                q += `&model=${encodeURIComponent(filters.model)}`;
       if (filters.serial_number)        q += `&serial_number=${encodeURIComponent(filters.serial_number)}`;
@@ -256,7 +258,7 @@ export const LaptopList: React.FC = () => {
   };
 
   const hasFilters =
-    !!(filters.asset_tag || filters.model || filters.serial_number ||
+    !!(filters.search || filters.asset_tag || filters.model || filters.serial_number ||
        filters.brands.length || filters.statuses.length || filters.conditions.length);
 
   const openAssignModal = (laptop: Laptop) => {
@@ -329,6 +331,16 @@ export const LaptopList: React.FC = () => {
           <p style={{ fontSize: 13, color: 'var(--text-muted)', marginTop: 3 }}>{total} devices registered</p>
         </div>
         <div className="list-header-actions" style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+          <div className="search-input-wrap hide-on-mobile" style={{ position: 'relative' }}>
+            <Monitor size={14} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+            <input 
+              type="text" 
+              placeholder="Quick search laptops..." 
+              value={filters.search}
+              onChange={(e) => setFilters(f => ({ ...f, search: e.target.value }))}
+              style={{ padding: '8px 12px 8px 32px', borderRadius: 6, border: '1px solid var(--border-default)', background: 'var(--bg-surface)', color: 'var(--text-primary)', fontSize: 13, width: 220 }}
+            />
+          </div>
           <button type="button" style={S.iconBtn()} title="Refresh" onClick={() => refetch()}><RefreshCw size={14} /></button>
           <button type="button" style={S.iconBtn(filterOpen)} title="Filters"
             onClick={() => { setPendingFilters(filters); setFilterOpen(o => !o); }}>
@@ -433,6 +445,7 @@ export const LaptopList: React.FC = () => {
       {hasFilters && (
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, padding: '8px 16px', borderBottom: `1px solid var(--border-default)`, alignItems: 'center' }}>
           <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>Active:</span>
+          {filters.search        && <Tag label={`Search: ${filters.search}`}         onRemove={() => setFilters(f => ({ ...f, search: '' }))} />}
           {filters.asset_tag     && <Tag label={`Asset Tag: ${filters.asset_tag}`} onRemove={() => setFilters(f => ({ ...f, asset_tag: '' }))} />}
           {filters.model         && <Tag label={`Model: ${filters.model}`}           onRemove={() => setFilters(f => ({ ...f, model: '' }))} />}
           {filters.serial_number && <Tag label={`S/N: ${filters.serial_number}`}     onRemove={() => setFilters(f => ({ ...f, serial_number: '' }))} />}

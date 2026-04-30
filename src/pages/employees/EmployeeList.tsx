@@ -19,15 +19,17 @@ import type { Employee } from '../../types';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface EmployeeFilters {
+  search:        string;
   name:          string;
   email:         string;
   asset_tag:     string;
   departments:   string[];
   statuses:      string[];
+  has_laptop:    string; // 'all' | 'true' | 'false'
 }
 
 const EMPTY_FILTERS: EmployeeFilters = {
-  name: '', email: '', asset_tag: '', departments: [], statuses: [],
+  search: '', name: '', email: '', asset_tag: '', departments: [], statuses: [], has_laptop: 'all',
 };
 
 const DEFAULT_DEPARTMENTS = [
@@ -154,9 +156,11 @@ export const EmployeeList: React.FC = () => {
       let q = `?page=${page}&limit=20`;
       if (filters.statuses.length)       q += `&status=${filters.statuses.join(',')}`;
       if (filters.departments.length)    q += `&department=${filters.departments.join(',')}`;
+      if (filters.search)                q += `&search=${encodeURIComponent(filters.search)}`;
       if (filters.name)                  q += `&name=${encodeURIComponent(filters.name)}`;
       if (filters.email)                 q += `&email=${encodeURIComponent(filters.email)}`;
       if (filters.asset_tag)             q += `&asset_tag=${encodeURIComponent(filters.asset_tag)}`;
+      if (filters.has_laptop !== 'all')  q += `&has_laptop=${filters.has_laptop}`;
       q += `&sort_by=${sortConfig.key}&sort_dir=${sortConfig.direction}`;
       return api.get(`/employees${q}`, signal);
     },
@@ -227,8 +231,8 @@ export const EmployeeList: React.FC = () => {
   const resetFilters = () => { setFilters(EMPTY_FILTERS); setPendingFilters(EMPTY_FILTERS); };
 
   const hasFilters =
-    !!(filters.name || filters.email || filters.asset_tag ||
-       filters.departments.length || filters.statuses.length);
+    !!(filters.search || filters.name || filters.email || filters.asset_tag ||
+       filters.departments.length || filters.statuses.length || filters.has_laptop !== 'all');
 
   const totalPages = Math.ceil(total / 20) || 1;
   const pageFrom   = total === 0 ? 0 : (page - 1) * 20 + 1;
@@ -289,6 +293,16 @@ export const EmployeeList: React.FC = () => {
           <p style={{ fontSize: 13, color: 'var(--text-muted)', marginTop: 3 }}>{total} staff members listed</p>
         </div>
         <div className="list-header-actions" style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+          <div className="search-input-wrap hide-on-mobile" style={{ position: 'relative' }}>
+            <User size={14} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+            <input 
+              type="text" 
+              placeholder="Quick search staff..." 
+              value={filters.search}
+              onChange={(e) => setFilters(f => ({ ...f, search: e.target.value }))}
+              style={{ padding: '8px 12px 8px 32px', borderRadius: 6, border: '1px solid var(--border-default)', background: 'var(--bg-surface)', color: 'var(--text-primary)', fontSize: 13, width: 220 }}
+            />
+          </div>
           <button type="button" style={S.iconBtn()} title="Refresh" onClick={() => refetch()}><RefreshCw size={14} /></button>
 
           <button type="button" style={S.iconBtn(filterOpen)} title="Filters"
@@ -378,6 +392,15 @@ export const EmployeeList: React.FC = () => {
               </div>
             </div>
           </AccordionSection>
+          <AccordionSection title="Device Assignment">
+            <FilterSelectSingle 
+              label="Device Status" 
+              options={['With Laptop', 'Without Laptop']} 
+              value={pendingFilters.has_laptop === 'true' ? 'With Laptop' : pendingFilters.has_laptop === 'false' ? 'Without Laptop' : ''} 
+              allLabel="All Staff" 
+              onChange={v => setPendingFilters(f => ({ ...f, has_laptop: v === 'With Laptop' ? 'true' : v === 'Without Laptop' ? 'false' : 'all' }))} 
+            />
+          </AccordionSection>
           <div style={{ display: 'flex', gap: 8, padding: '12px 20px', justifyContent: 'flex-end' }}>
             <button type="button" style={{ padding: '7px 14px', background: 'none', border: `1px solid var(--border-default)`, borderRadius: 6, color: 'var(--text-secondary)', fontSize: 13, cursor: 'pointer' }} onClick={() => setFilterOpen(false)}>Cancel</button>
             <button type="button" style={{ padding: '7px 14px', background: 'var(--accent-green)', color: '#fff', border: 'none', borderRadius: 6, fontSize: 13, fontWeight: 600, cursor: 'pointer' }} onClick={applyFilters}>Apply</button>
@@ -396,9 +419,16 @@ export const EmployeeList: React.FC = () => {
         {hasFilters && (
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, padding: '8px 16px', borderBottom: `1px solid var(--border-default)`, alignItems: 'center' }}>
             <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>Active:</span>
+            {filters.search    && <Tag label={`Search: ${filters.search}`}    onRemove={() => setFilters(f => ({ ...f, search: '' }))} />}
             {filters.name      && <Tag label={`Name: ${filters.name}`}       onRemove={() => setFilters(f => ({ ...f, name: '' }))} />}
             {filters.email     && <Tag label={`Email: ${filters.email}`}     onRemove={() => setFilters(f => ({ ...f, email: '' }))} />}
             {filters.asset_tag && <Tag label={`Asset: ${filters.asset_tag}`} onRemove={() => setFilters(f => ({ ...f, asset_tag: '' }))} />}
+            {filters.has_laptop !== 'all' && (
+              <Tag 
+                label={filters.has_laptop === 'true' ? 'Has Laptop' : 'No Laptop'} 
+                onRemove={() => setFilters(f => ({ ...f, has_laptop: 'all' }))} 
+              />
+            )}
             {filters.departments.map(d    => <Tag key={d} label={d} onRemove={() => setFilters(f => ({ ...f, departments:    f.departments.filter(x => x !== d) }))} />)}
             {filters.statuses.map(s       => <Tag key={s} label={s} onRemove={() => setFilters(f => ({ ...f, statuses:       f.statuses.filter(x => x !== s) }))} />)}
           </div>
