@@ -38,7 +38,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
     <>
       <div className={`sidebar-overlay ${isOpen ? 'show' : ''}`} onClick={onClose} />
       <aside className={`sidebar ${isOpen ? 'mobile-show' : ''} ${isCollapsed ? 'collapsed' : ''}`}>
-        {/* Logo */}
         <div className="sidebar-logo">
           <div className="sidebar-logo-icon">
             <Monitor size={18} />
@@ -49,6 +48,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
               <span className="sidebar-logo-badge">Admin Panel</span>
             </div>
           )}
+          
+          <button 
+            className="sidebar-collapse-toggle hide-on-mobile"
+            onClick={onToggleCollapse}
+            title={isCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
+          >
+            {isCollapsed ? <PanelLeftOpen size={16} /> : <PanelLeftClose size={16} />}
+          </button>
         </div>
 
         {/* Navigation */}
@@ -83,15 +90,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
               {!isCollapsed && <span>{item.label}</span>}
             </NavLink>
           ))}
-          
-          {/* Collapse Toggle */}
-          <button 
-            className="sidebar-collapse-toggle hide-on-mobile"
-            onClick={onToggleCollapse}
-            title={isCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
-          >
-            {isCollapsed ? <PanelLeftOpen size={16} /> : <PanelLeftClose size={16} />}
-          </button>
         </div>
       </aside>
     </>
