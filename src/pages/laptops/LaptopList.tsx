@@ -320,14 +320,30 @@ export const LaptopList: React.FC = () => {
       color: muted ? 'var(--text-secondary)' : 'var(--text-primary)',
       borderBottom: `1px solid var(--border-default)`,
     }),
-    actBtn: (): React.CSSProperties => ({
-      width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center',
-      background: 'none',
-      border: `1px solid var(--border-default)`,
-      borderRadius: 5,
-      color: 'var(--text-muted)',
-      cursor: 'pointer', transition: 'all .15s',
-    }),
+    actBtn: (variant?: 'view' | 'edit' | 'delete'): React.CSSProperties => {
+      let color = 'var(--text-muted)';
+      let bg = 'var(--bg-surface)';
+      let border = 'var(--border-default)';
+      
+      if (variant === 'view') {
+        color = '#60a5fa'; // info blue
+        bg = 'rgba(96, 165, 250, 0.08)';
+        border = 'rgba(96, 165, 250, 0.2)';
+      } else if (variant === 'edit') {
+        color = '#f59e0b'; // warning amber
+        bg = 'rgba(245, 158, 11, 0.08)';
+        border = 'rgba(245, 158, 11, 0.2)';
+      }
+      
+      return {
+        width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center',
+        background: bg,
+        border: `1px solid ${border}`,
+        borderRadius: 6,
+        color: color,
+        cursor: 'pointer', transition: 'all .15s',
+      };
+    },
     pagBtn: (disabled: boolean): React.CSSProperties => ({
       width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center',
       background: 'var(--bg-elevated)', border: `1px solid var(--border-default)`, borderRadius: 5,
@@ -525,7 +541,7 @@ export const LaptopList: React.FC = () => {
                     <td style={S.td(true)}>{getAssigneeName(lp)}</td>
                     <td style={{ ...S.td(false), textAlign: 'center' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 10, justifyContent: 'center' }} onClick={e => e.stopPropagation()}>
-                        <button type="button" style={S.actBtn()} title="View Details"
+                        <button type="button" style={S.actBtn('view')} title="View Details"
                           onClick={() => { setDetailLaptopId(lp.id); setDetailPanelOpen(true); }}>
                           <Eye size={13} />
                         </button>
@@ -576,7 +592,7 @@ export const LaptopList: React.FC = () => {
                 <div className="mobile-data-card-row">
                   <span>{getAssigneeName(lp)}</span>
                   <div style={{ display: 'flex', gap: 8 }} onClick={e => e.stopPropagation()}>
-                    <button type="button" style={S.actBtn()} title="View Details" onClick={() => { setDetailLaptopId(lp.id); setDetailPanelOpen(true); }}>
+                    <button type="button" style={S.actBtn('view')} title="View Details" onClick={() => { setDetailLaptopId(lp.id); setDetailPanelOpen(true); }}>
                       <Eye size={13} />
                     </button>
                     {lp.status === 'AVAILABLE' && (

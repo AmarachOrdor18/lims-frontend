@@ -288,14 +288,30 @@ export const EmployeeList: React.FC = () => {
       color: muted ? 'var(--text-secondary)' : 'var(--text-primary)',
       borderBottom: `1px solid var(--border-default)`,
     }),
-    actBtn: (): React.CSSProperties => ({
-      width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center',
-      background: 'none',
-      border: `1px solid var(--border-default)`,
-      borderRadius: 5,
-      color: 'var(--text-muted)',
-      cursor: 'pointer', transition: 'all .15s',
-    }),
+    actBtn: (variant?: 'view' | 'edit' | 'delete'): React.CSSProperties => {
+      let color = 'var(--text-muted)';
+      let bg = 'var(--bg-surface)';
+      let border = 'var(--border-default)';
+      
+      if (variant === 'view') {
+        color = '#60a5fa'; // info blue
+        bg = 'rgba(96, 165, 250, 0.08)';
+        border = 'rgba(96, 165, 250, 0.2)';
+      } else if (variant === 'edit') {
+        color = '#f59e0b'; // warning amber
+        bg = 'rgba(245, 158, 11, 0.08)';
+        border = 'rgba(245, 158, 11, 0.2)';
+      }
+      
+      return {
+        width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center',
+        background: bg,
+        border: `1px solid ${border}`,
+        borderRadius: 6,
+        color: color,
+        cursor: 'pointer', transition: 'all .15s',
+      };
+    },
     pagBtn: (disabled: boolean): React.CSSProperties => ({
       width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center',
       background: 'var(--bg-elevated)', border: `1px solid var(--border-default)`, borderRadius: 5,
@@ -501,11 +517,11 @@ export const EmployeeList: React.FC = () => {
                     <td style={{ ...S.td(true), fontFamily: 'monospace', fontSize: 12 }}>{getAssignedAssetTag(emp)}</td>
                     <td style={{ ...S.td(false), textAlign: 'center' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 10, justifyContent: 'center' }} onClick={e => e.stopPropagation()}>
-                        <button type="button" style={S.actBtn()} title="View Details"
+                        <button type="button" style={S.actBtn('view')} title="View Details"
                           onClick={() => { setDetailEmployeeId(emp.id); setDetailPanelOpen(true); }}>
                           <Eye size={13} />
                         </button>
-                        <button type="button" style={S.actBtn()} title="Edit"
+                        <button type="button" style={S.actBtn('edit')} title="Edit"
                           onClick={() => { setFormEmployeeId(emp.id); setFormPanelOpen(true); }}>
                           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                             <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
@@ -528,10 +544,10 @@ export const EmployeeList: React.FC = () => {
                 <div className="mobile-data-card-row">
                   <span>Actions</span>
                   <div style={{ display: 'flex', gap: 8 }} onClick={e => e.stopPropagation()}>
-                    <button type="button" style={S.actBtn()} title="View Details" onClick={() => { setDetailEmployeeId(emp.id); setDetailPanelOpen(true); }}>
+                    <button type="button" style={S.actBtn('view')} title="View Details" onClick={() => { setDetailEmployeeId(emp.id); setDetailPanelOpen(true); }}>
                       <Eye size={13} />
                     </button>
-                    <button type="button" style={S.actBtn()} title="Edit" onClick={() => { setFormEmployeeId(emp.id); setFormPanelOpen(true); }}>
+                    <button type="button" style={S.actBtn('edit')} title="Edit" onClick={() => { setFormEmployeeId(emp.id); setFormPanelOpen(true); }}>
                       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                         <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
                         <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
