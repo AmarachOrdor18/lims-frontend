@@ -18,6 +18,7 @@
   --sidebar-bg: #0c0d11;
   --sidebar-border: rgba(255, 255, 255, 0.05);
   --sidebar-width: 240px;
+  --sidebar-collapsed-width: 68px;
 
   /* Borders */
   --border-subtle: rgba(255, 255, 255, 0.06);
@@ -267,6 +268,10 @@ ul { list-style: none; }
   display: flex;
   flex-direction: column;
   transition: margin-left var(--transition-base);
+}
+
+.sidebar-collapsed .main-content {
+  margin-left: var(--sidebar-collapsed-width);
 }
 
 .page-content {
@@ -800,7 +805,7 @@ ul { list-style: none; }
 .form-select:focus,
 .form-textarea:focus {
   border-color: var(--accent-green);
-  box-shadow: 0 0 0 3px rgba(225, 29, 72, 0.12);
+  box-shadow: 0 0 0 3px var(--accent-green-glow);
 }
 
 .form-select {
