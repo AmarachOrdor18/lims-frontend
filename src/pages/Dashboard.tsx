@@ -71,10 +71,11 @@ export const Dashboard: React.FC = () => {
             <Plus size={14} /> Register Device
           </button>
           <button
-            className="dash-action-btn dash-action-btn--secondary"
+            className="btn btn-primary"
+            style={{ padding: '10px 16px', display: 'flex', alignItems: 'center', gap: '8px' }}
             onClick={() => navigate('/laptops?status=AVAILABLE&condition=FUNCTIONAL')}
           >
-            <ClipboardList size={14} /> Assign Device
+            <ClipboardList size={16} /> Assign Device
           </button>
         </div>
       </header>
@@ -125,7 +126,7 @@ export const Dashboard: React.FC = () => {
             <button
               className="btn btn-ghost btn-sm"
               style={{ fontSize: 12 }}
-              onClick={() => navigate('/assignments')}
+              onClick={() => navigate('/laptops?status=ASSIGNED')}
             >
               View All
             </button>

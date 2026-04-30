@@ -221,17 +221,19 @@
   display: flex;
   align-items: center;
   gap: 14px;
-  padding: 12px 8px;
-  border-bottom: 1px solid var(--border-subtle);
+  padding: 14px 16px;
+  margin-bottom: 10px;
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-base);
+  border-radius: var(--radius-md);
   cursor: pointer;
-  transition: background var(--transition-fast);
-  border-radius: var(--radius-sm);
+  transition: all var(--transition-fast);
 }
 
 @media (max-width: 640px) {
   .recent-assignment-row {
-    padding: 10px 0;
-    gap: 8px;
+    padding: 12px 14px;
+    gap: 10px;
     flex-wrap: wrap;
   }
   .ra-date {
@@ -239,13 +241,18 @@
   }
   .ra-employee {
     width: 100%;
-    margin-left: 40px; /* align with text */
+    margin-left: 42px; /* align with text */
     margin-top: -6px;
   }
 }
 
-.recent-assignment-row:last-child { border-bottom: none; }
-.recent-assignment-row:hover { background: var(--bg-hover); }
+.recent-assignment-row:last-child { margin-bottom: 0; border-bottom: 1px solid var(--border-subtle); }
+.recent-assignment-row:hover { 
+  background: var(--bg-hover);
+  border-color: var(--accent-green);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-sm);
+}
 
 .recent-assignment-asset {
   display: flex;
@@ -369,7 +376,8 @@
     padding-bottom: 12px;
   }
   .stat-cards-grid.dashboard-stat-grid {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: 1fr;
+    gap: 12px;
   }
 }
 
