@@ -132,7 +132,7 @@ export const Dashboard: React.FC = () => {
             </button>
           </div>
 
-          <div className="card" style={{ padding: '0 16px' }}>
+          <div className="card" style={{ padding: '8px 16px' }}>
             <div className="recent-assignments">
               {recent.length === 0 ? (
                 <div style={{ padding: '32px 0', textAlign: 'center', color: 'var(--text-muted)', fontSize: 13 }}>
