@@ -231,16 +231,14 @@
 @media (max-width: 640px) {
   .recent-assignment-row {
     padding: 14px 0;
-    gap: 8px;
-    flex-wrap: wrap;
+    gap: 10px;
+    flex-wrap: nowrap;
   }
-  .ra-date {
+  .ra-date, .ra-device {
     display: none;
   }
   .ra-employee {
-    width: 100%;
-    margin-left: 42px; /* align with text */
-    margin-top: -6px;
+    margin-left: auto;
   }
 }
 

@@ -270,7 +270,7 @@ export const EmployeeList: React.FC = () => {
           <h1 style={{ fontSize: 22, fontWeight: 700, margin: 0 }}>People</h1>
           <p style={{ fontSize: 13, color: 'var(--text-muted)', marginTop: 3 }}>{total} staff members listed</p>
         </div>
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+        <div className="list-header-actions" style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
           <button type="button" style={S.iconBtn()} title="Refresh" onClick={() => refetch()}><RefreshCw size={14} /></button>
 
           <button type="button" style={S.iconBtn(filterOpen)} title="Filters"

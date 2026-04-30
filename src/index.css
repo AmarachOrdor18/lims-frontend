@@ -123,6 +123,11 @@
   .hide-on-mobile {
     display: none !important;
   }
+  .list-header-actions {
+    width: 100%;
+    justify-content: flex-start !important;
+    margin-top: 12px;
+  }
 }
 
 /* ── Reset ─────────────────────────────────────────────────── */
