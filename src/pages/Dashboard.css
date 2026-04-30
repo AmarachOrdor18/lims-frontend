@@ -234,7 +234,7 @@
     gap: 10px;
     flex-wrap: nowrap;
   }
-  .ra-date, .ra-device {
+  .ra-date {
     display: none;
   }
   .ra-employee {
