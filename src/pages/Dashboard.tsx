@@ -8,8 +8,7 @@ import {
   UserCheck,
   History,
   Plus,
-  ClipboardList,
-  Bell
+  ClipboardList
 } from 'lucide-react';
 import { api } from '../api';
 import { format } from 'date-fns';
@@ -123,8 +122,8 @@ export const Dashboard: React.FC = () => {
               <h2>Recent Assignments</h2>
             </div>
             <button
-              className="btn btn-ghost btn-sm"
-              style={{ fontSize: 12 }}
+              className="btn btn-secondary btn-sm"
+              style={{ fontSize: 12, display: 'flex', alignItems: 'center', gap: 4 }}
               onClick={() => navigate('/laptops?status=ASSIGNED')}
             >
               View All
@@ -157,7 +156,12 @@ export const Dashboard: React.FC = () => {
                       <div className="ra-user-avatar">
                         {item.employee_name?.charAt(0) ?? '?'}
                       </div>
-                      <div className="ra-employee-name">{item.employee_name}</div>
+                      <div className="ra-employee-name">
+                        <span className="hide-on-mobile">{item.employee_name}</span>
+                        <span className="show-on-mobile" style={{ display: 'none' }}>
+                          {item.employee_name?.split(' ')[0]}
+                        </span>
+                      </div>
                     </div>
                     <div className="ra-date">
                       {item.assigned_date ? format(new Date(item.assigned_date), 'MMM d') : '—'}
@@ -176,13 +180,6 @@ export const Dashboard: React.FC = () => {
               <Monitor size={16} style={{ color: 'var(--accent-green)' }} />
               <h2>Inventory Breakdown</h2>
             </div>
-            <button
-              className="btn btn-ghost btn-sm"
-              style={{ fontSize: 12 }}
-              onClick={() => navigate('/notifications')}
-            >
-              <Bell size={12} /> Alerts
-            </button>
           </div>
 
           <div className="card" style={{ padding: '24px' }}>

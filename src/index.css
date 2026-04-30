@@ -123,6 +123,9 @@
   .hide-on-mobile {
     display: none !important;
   }
+  .show-on-mobile {
+    display: inline !important;
+  }
   .list-header-actions {
     width: 100%;
     justify-content: flex-start !important;
