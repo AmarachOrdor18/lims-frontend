@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import {
   Plus, Hash, Eye,
@@ -202,21 +202,23 @@ export const LaptopList: React.FC = () => {
   const total:      number   = response?.total ?? 0;
   
   // ── Client-side filtering fallback ─────────────────────────────────────────
-  const laptops = rawLaptops.filter(lp => {
-    if (filters.search) {
-      const s = filters.search.toLowerCase();
-      const match = lp.asset_tag.toLowerCase().includes(s) || 
-                    lp.brand.toLowerCase().includes(s) || 
-                    lp.model.toLowerCase().includes(s) ||
-                    lp.serial_number.toLowerCase().includes(s);
-      if (!match) return false;
-    }
-    if (filters.asset_tag && !lp.asset_tag.toLowerCase().includes(filters.asset_tag.toLowerCase())) return false;
-    if (filters.model && !lp.model.toLowerCase().includes(filters.model.toLowerCase())) return false;
-    if (filters.serial_number && !lp.serial_number.toLowerCase().includes(filters.serial_number.toLowerCase())) return false;
-    
-    return true;
-  });
+  const laptops = useMemo(() => {
+    return rawLaptops.filter(lp => {
+      if (filters.search) {
+        const s = filters.search.toLowerCase();
+        const match = lp.asset_tag.toLowerCase().includes(s) || 
+                      lp.brand.toLowerCase().includes(s) || 
+                      lp.model.toLowerCase().includes(s) ||
+                      lp.serial_number.toLowerCase().includes(s);
+        if (!match) return false;
+      }
+      if (filters.asset_tag && !lp.asset_tag.toLowerCase().includes(filters.asset_tag.toLowerCase())) return false;
+      if (filters.model && !lp.model.toLowerCase().includes(filters.model.toLowerCase())) return false;
+      if (filters.serial_number && !lp.serial_number.toLowerCase().includes(filters.serial_number.toLowerCase())) return false;
+      
+      return true;
+    });
+  }, [rawLaptops, filters]);
 
   // ── Excel export helper ────────────────────────────────────────────────────
   function downloadExcel(filename: string, rows: Laptop[]) {

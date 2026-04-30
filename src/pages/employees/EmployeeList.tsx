@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import {
   Plus, User, Eye,
   Monitor, Activity,
@@ -172,26 +172,28 @@ export const EmployeeList: React.FC = () => {
 
   // ── Client-side filtering fallback ─────────────────────────────────────────
   // We filter locally to ensure the UI is accurate even if backend filtering fails
-  const employees = rawEmployees.filter(emp => {
-    // Quick Search
-    if (filters.search) {
-      const s = filters.search.toLowerCase();
-      const match = `${emp.first_name} ${emp.last_name}`.toLowerCase().includes(s) ||
-                    emp.email.toLowerCase().includes(s) ||
-                    (emp as any).assigned_asset_tag?.toLowerCase().includes(s);
-      if (!match) return false;
-    }
-    // Name filter from panel
-    if (filters.name) {
-      const n = filters.name.toLowerCase();
-      if (!`${emp.first_name} ${emp.last_name}`.toLowerCase().includes(n)) return false;
-    }
-    // Laptop assignment status
-    if (filters.has_laptop === 'false' && (emp as any).assigned_asset_tag) return false;
-    if (filters.has_laptop === 'true' && !(emp as any).assigned_asset_tag) return false;
-    
-    return true;
-  });
+  const employees = useMemo(() => {
+    return rawEmployees.filter(emp => {
+      // Quick Search
+      if (filters.search) {
+        const s = filters.search.toLowerCase();
+        const match = `${emp.first_name} ${emp.last_name}`.toLowerCase().includes(s) ||
+                      emp.email.toLowerCase().includes(s) ||
+                      (emp as any).assigned_asset_tag?.toLowerCase().includes(s);
+        if (!match) return false;
+      }
+      // Name filter from panel
+      if (filters.name) {
+        const n = filters.name.toLowerCase();
+        if (!`${emp.first_name} ${emp.last_name}`.toLowerCase().includes(n)) return false;
+      }
+      // Laptop assignment status
+      if (filters.has_laptop === 'false' && (emp as any).assigned_asset_tag) return false;
+      if (filters.has_laptop === 'true' && !(emp as any).assigned_asset_tag) return false;
+      
+      return true;
+    });
+  }, [rawEmployees, filters]);
 
   // Build dept options from live data
   useEffect(() => {
