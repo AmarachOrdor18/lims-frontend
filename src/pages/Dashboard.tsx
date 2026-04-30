@@ -66,7 +66,7 @@ export const Dashboard: React.FC = () => {
           <p className="dashboard-welcome-sub">System status and inventory overview for today.</p>
         </div>
         <div className="dashboard-header-right">
-          <button className="dash-action-btn" onClick={() => navigate('/laptops/new')}>
+          <button className="dash-action-btn" onClick={() => navigate('/laptops?add=true')}>
             <Plus size={14} /> Register Device
           </button>
           <button

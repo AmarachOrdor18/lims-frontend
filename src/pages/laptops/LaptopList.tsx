@@ -149,10 +149,21 @@ export const LaptopList: React.FC = () => {
   useEffect(() => {
     const s = searchParams.get('status');
     const c = searchParams.get('condition');
+    const a = searchParams.get('add');
+
     if (s || c) {
       const patch = { statuses: s ? s.split(',') : [], conditions: c ? c.split(',') : [] };
       setFilters(f => ({ ...f, ...patch }));
       setPendingFilters(f => ({ ...f, ...patch }));
+    }
+
+    if (a === 'true') {
+      setFormLaptopId(null);
+      setFormPanelOpen(true);
+      // Clean up the URL
+      const newParams = new URLSearchParams(searchParams);
+      newParams.delete('add');
+      window.history.replaceState(null, '', `${window.location.pathname}${newParams.toString() ? `?${newParams.toString()}` : ''}`);
     }
   }, [searchParams]);
 
