@@ -6,7 +6,7 @@
   border-right: 1px solid var(--sidebar-border);
   display: flex;
   flex-direction: column;
-  z-index: 1000;
+  z-index: 10000;
   overflow: hidden;
   transition: width var(--transition-base), transform var(--transition-base);
 }

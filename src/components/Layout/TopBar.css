@@ -16,6 +16,10 @@
   transition: left var(--transition-base);
 }
 
+.sidebar-collapsed .topbar {
+  left: var(--sidebar-collapsed-width);
+}
+
 @media (max-width: 1024px) {
   .topbar { left: 0; padding: 0 16px; }
 }
