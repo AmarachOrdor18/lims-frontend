@@ -16,6 +16,7 @@ import { LaptopFormPanel }      from './LaptopFormPanel';
 import { api }                  from '../../api';
 import { toast }                from 'sonner';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import * as XLSX from 'xlsx';
 import type { Laptop } from '../../types';
 
 // ─── Filter state type ────────────────────────────────────────────────────────
@@ -187,33 +188,32 @@ export const LaptopList: React.FC = () => {
   const laptops: Laptop[] = response?.data  ?? [];
   const total:   number   = response?.total ?? 0;
 
-  // ── CSV export helper ──────────────────────────────────────────────────────
-  function downloadCSV(filename: string, rows: Laptop[]) {
+  // ── Excel export helper ────────────────────────────────────────────────────
+  function downloadExcel(filename: string, rows: Laptop[]) {
     if (!rows.length) return;
-    const headers = Object.keys(rows[0]) as (keyof Laptop)[];
-    const csv = [
-      headers.join(','),
-      ...rows.map(r => headers.map(h => JSON.stringify(r[h] ?? '')).join(',')),
-    ].join('\n');
-    const a = Object.assign(document.createElement('a'), {
-      href:     URL.createObjectURL(new Blob([csv], { type: 'text/csv' })),
-      download: filename,
-    });
-    a.click();
-    URL.revokeObjectURL(a.href);
+    const worksheet = XLSX.utils.json_to_sheet(rows);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Laptops');
+    XLSX.writeFile(workbook, filename.replace('.csv', '.xlsx'));
   }
+
+  // ── CSV import helper ──────────────────────────────────────────────────────
+  const normalizeKey = (row: Record<string, string>, possible: string[]) => {
+    const key = Object.keys(row).find(k => possible.includes(k.trim().toLowerCase()));
+    return key ? row[key] : null;
+  };
 
   // ── CSV import handler ─────────────────────────────────────────────────────
   const handleImport = async (data: Record<string, string>[]) => {
     try {
       await api.post('/laptops/bulk', {
         laptops: data.map(i => ({
-          brand:         i['Brand'],
-          model:         i['Model'],
-          serial_number: i['Serial Number'],
-          purchase_date: i['Purchase Date'] || null,
-          condition:     (i['Condition'] ?? 'FUNCTIONAL').toUpperCase(),
-          status:        (i['Status']    ?? 'AVAILABLE').toUpperCase(),
+          brand:         normalizeKey(i, ['brand']),
+          model:         normalizeKey(i, ['model']),
+          serial_number: normalizeKey(i, ['serial number', 'serial_number', 'sn', 'serial']),
+          purchase_date: normalizeKey(i, ['purchase date', 'purchase_date']) || null,
+          condition:     (normalizeKey(i, ['condition']) ?? 'FUNCTIONAL').toUpperCase(),
+          status:        (normalizeKey(i, ['status'])    ?? 'AVAILABLE').toUpperCase(),
         })),
       });
       toast.success('Inventory imported successfully');
@@ -324,7 +324,7 @@ export const LaptopList: React.FC = () => {
             </button>
             {exportOpen && (
               <div style={{ position: 'absolute', right: 0, top: 38, background: 'var(--bg-elevated)', border: `1px solid var(--border-default)`, borderRadius: 8, minWidth: 160, zIndex: 50, boxShadow: '0 4px 16px rgba(0,0,0,0.3)' }}>
-                <button style={S.expItem()} onClick={() => { downloadCSV('laptops.csv', laptops); setExportOpen(false); }}>Export Current Page</button>
+                <button style={S.expItem()} onClick={() => { downloadExcel('laptops.xlsx', laptops); setExportOpen(false); }}>Export to Excel</button>
               </div>
             )}
           </div>

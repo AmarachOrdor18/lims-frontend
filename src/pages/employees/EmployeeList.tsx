@@ -14,6 +14,7 @@ import { EmployeeFormPanel }   from './EmployeeFormPanel';
 import { api }        from '../../api';
 import { toast }      from 'sonner';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import * as XLSX from 'xlsx';
 import type { Employee } from '../../types';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -174,25 +175,35 @@ export const EmployeeList: React.FC = () => {
     }
   }, [employees]);
 
-  // ── Export ────────────────────────────────────────────────────────────────
-  function downloadCSV(filename: string, rows: Employee[]) {
+  // ── Excel export helper ────────────────────────────────────────────────────
+  function downloadExcel(filename: string, rows: Employee[]) {
     if (!rows.length) return;
-    const headers = Object.keys(rows[0]) as (keyof Employee)[];
-    const csv = [headers.join(','), ...rows.map(r => headers.map(h => JSON.stringify(r[h] ?? '')).join(','))].join('\n');
-    const a = Object.assign(document.createElement('a'), { href: URL.createObjectURL(new Blob([csv], { type: 'text/csv' })), download: filename });
-    a.click(); URL.revokeObjectURL(a.href);
+    const worksheet = XLSX.utils.json_to_sheet(rows);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Employees');
+    XLSX.writeFile(workbook, filename.replace('.csv', '.xlsx'));
   }
 
-  // ── Import ────────────────────────────────────────────────────────────────
+  // ── CSV import helper ──────────────────────────────────────────────────────
+  const normalizeKey = (row: Record<string, string>, possible: string[]) => {
+    const key = Object.keys(row).find(k => possible.includes(k.trim().toLowerCase()));
+    return key ? row[key] : null;
+  };
+
+  // ── CSV import handler ─────────────────────────────────────────────────────
   const handleImport = async (data: Record<string, string>[]) => {
     try {
       await api.post('/employees/bulk', {
         employees: data.map(i => ({
-          first_name: i['First Name'], last_name: i['Last Name'],
-          email: i['Email'], department: i['Department'] || 'General',
-          entity: i['Entity'] || 'Qucoon', location: i['Location'] || 'Lagos, Nigeria',
-          job_title: i['Job Title'] || 'Associate',
-          staff_type: i['Staff Type'] || 'Staff', seniority: i['Seniority'] || 'Associate',
+          first_name: normalizeKey(i, ['first name', 'first_name', 'firstname']),
+          last_name:  normalizeKey(i, ['last name', 'last_name', 'lastname']),
+          email:      normalizeKey(i, ['email', 'email address']),
+          department: normalizeKey(i, ['department', 'dept']) || 'General',
+          entity:     normalizeKey(i, ['entity', 'company'])   || 'Qucoon',
+          location:   normalizeKey(i, ['location', 'city'])   || 'Lagos, Nigeria',
+          job_title:  normalizeKey(i, ['job title', 'job_title', 'role', 'position']) || 'Associate',
+          staff_type: normalizeKey(i, ['staff type', 'staff_type', 'type']) || 'Staff',
+          seniority:  normalizeKey(i, ['seniority', 'level']) || 'Associate',
         })),
       });
       toast.success('Employees imported successfully');
@@ -285,7 +296,7 @@ export const EmployeeList: React.FC = () => {
             </button>
             {exportOpen && (
               <div style={{ position: 'absolute', right: 0, top: 38, background: 'var(--bg-elevated)', border: `1px solid var(--border-default)`, borderRadius: 8, minWidth: 160, zIndex: 50, boxShadow: '0 4px 16px rgba(0,0,0,0.3)' }}>
-                <button style={S.expItem()} onClick={() => { downloadCSV('employees.csv', employees); setExportOpen(false); }}>Export Current Page</button>
+                <button style={S.expItem()} onClick={() => { downloadExcel('employees.xlsx', employees); setExportOpen(false); }}>Export to Excel</button>
               </div>
             )}
           </div>
