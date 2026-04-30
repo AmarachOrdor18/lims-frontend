@@ -8,6 +8,7 @@ interface CSVImporterProps {
   sampleRows?: string[][];
   title: string;
   id?: string;
+  tips?: string[];
 }
 
 export const CSVImporter: React.FC<CSVImporterProps> = ({
@@ -15,7 +16,12 @@ export const CSVImporter: React.FC<CSVImporterProps> = ({
   sampleHeaders,
   sampleRows = [],
   title,
-  id
+  id,
+  tips = [
+    'Ensure headers match the sample CSV exactly.',
+    'Email addresses must be unique.',
+    'Dates should be in YYYY-MM-DD format.'
+  ]
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [file, setFile] = useState<File | null>(null);
@@ -145,9 +151,7 @@ export const CSVImporter: React.FC<CSVImporterProps> = ({
               <div className="import-tips">
                 <h4>Tips for import:</h4>
                 <ul>
-                  <li>Ensure headers match the sample CSV exactly.</li>
-                  <li>Email addresses must be unique.</li>
-                  <li>Dates should be in YYYY-MM-DD format.</li>
+                  {tips.map((tip, i) => <li key={i}>{tip}</li>)}
                 </ul>
               </div>
             </div>

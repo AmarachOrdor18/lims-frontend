@@ -206,7 +206,7 @@ export const LaptopList: React.FC = () => {
   // ── CSV import handler ─────────────────────────────────────────────────────
   const handleImport = async (data: Record<string, string>[]) => {
     try {
-      await api.post('/laptops/bulk', {
+      const res = await api.post('/laptops/bulk', {
         laptops: data.map(i => ({
           brand:         normalizeKey(i, ['brand']),
           model:         normalizeKey(i, ['model']),
@@ -216,10 +216,17 @@ export const LaptopList: React.FC = () => {
           status:        (normalizeKey(i, ['status'])    ?? 'AVAILABLE').toUpperCase(),
         })),
       });
-      toast.success('Inventory imported successfully');
+      
+      if (res.errors && res.errors.length > 0) {
+        const msg = `Imported ${res.count} items. Errors: ${res.errors.map((e: any) => e.error).join(', ')}`;
+        throw new Error(msg);
+      }
+      
+      toast.success(`Successfully imported ${res.count} laptops`);
       queryClient.invalidateQueries({ queryKey: ['laptops'] });
-    } catch {
-      toast.error('Import failed');
+    } catch (err: any) {
+      toast.error(err.message || 'Import failed');
+      throw err; // Re-throw so CSVImporter shows the error
     }
   };
 
@@ -339,6 +346,13 @@ export const LaptopList: React.FC = () => {
                 ['HP', 'EliteBook', 'SN11223', '2022-11-10', 'FAULTY', 'RETIRED']
               ]}
               title="Laptops"
+              tips={[
+                'Headers must match sample CSV.',
+                'Serial numbers must be unique.',
+                'Condition: FUNCTIONAL or FAULTY.',
+                'Status: AVAILABLE, ASSIGNED, or RETIRED.',
+                'Date format: YYYY-MM-DD.'
+              ]}
             />
           </div>
 
@@ -551,16 +565,20 @@ export const LaptopList: React.FC = () => {
         )}
 
         {/* PAGINATION */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 16px', borderTop: `1px solid var(--border-default)` }}>
-          <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>Showing {pageFrom}–{pageTo} of {total}</span>
-          <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
-            <button type="button" disabled={page <= 1} style={S.pagBtn(page <= 1)} onClick={() => setPage(1)}><ChevronsLeft  size={12} /></button>
-            <button type="button" disabled={page <= 1} style={S.pagBtn(page <= 1)} onClick={() => setPage(p => p - 1)}><ChevronLeft   size={12} /></button>
-            <span style={{ fontSize: 12, color: 'var(--text-secondary)', padding: '0 4px' }}>Page {page} of {totalPages}</span>
-            <button type="button" disabled={page >= totalPages} style={S.pagBtn(page >= totalPages)} onClick={() => setPage(p => p + 1)}><ChevronRight  size={12} /></button>
-            <button type="button" disabled={page >= totalPages} style={S.pagBtn(page >= totalPages)} onClick={() => setPage(totalPages)}><ChevronsRight size={12} /></button>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 16px', borderTop: `1px solid var(--border-default)`, flexWrap: 'wrap', gap: 12 }}>
+          <span style={{ fontSize: 12, color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>Showing {pageFrom}–{pageTo} of {total}</span>
+          <div style={{ display: 'flex', gap: 4, alignItems: 'center', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+            <div style={{ display: 'flex', gap: 4 }}>
+              <button type="button" disabled={page <= 1} style={S.pagBtn(page <= 1)} onClick={() => setPage(1)}><ChevronsLeft  size={12} /></button>
+              <button type="button" disabled={page <= 1} style={S.pagBtn(page <= 1)} onClick={() => setPage(p => p - 1)}><ChevronLeft   size={12} /></button>
+            </div>
+            <span style={{ fontSize: 12, color: 'var(--text-secondary)', padding: '0 4px', whiteSpace: 'nowrap' }}>Page {page} of {totalPages}</span>
+            <div style={{ display: 'flex', gap: 4 }}>
+              <button type="button" disabled={page >= totalPages} style={S.pagBtn(page >= totalPages)} onClick={() => setPage(p => p + 1)}><ChevronRight  size={12} /></button>
+              <button type="button" disabled={page >= totalPages} style={S.pagBtn(page >= totalPages)} onClick={() => setPage(totalPages)}><ChevronsRight size={12} /></button>
+            </div>
             <select
-              style={{ background: 'var(--bg-elevated)', border: `1px solid var(--border-default)`, borderRadius: 5, color: 'var(--text-primary)', fontSize: 12, padding: '4px 6px', cursor: 'pointer' }}
+              style={{ background: 'var(--bg-elevated)', border: `1px solid var(--border-default)`, borderRadius: 5, color: 'var(--text-primary)', fontSize: 12, padding: '4px 6px', cursor: 'pointer', marginLeft: 4 }}
               defaultValue={20}
             >
               <option value={20}>20</option>

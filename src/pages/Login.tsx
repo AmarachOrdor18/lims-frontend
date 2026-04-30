@@ -42,8 +42,8 @@ export const Login: React.FC = () => {
             <Monitor size={24} />
           </div>
           <div>
-            <div className="login-brand-name">LIMS</div>
-            <div className="login-brand-sub">Laptop Inventory System</div>
+            <div className="login-brand-name">Asset Desk</div>
+            <div className="login-brand-sub">Asset Inventory Management</div>
           </div>
         </div>
 
@@ -78,8 +78,8 @@ export const Login: React.FC = () => {
             <Monitor size={20} />
           </div>
           <div className="login-mobile-brand-text">
-            <div className="login-brand-name">LIMS</div>
-            <div className="login-brand-sub">Laptop Inventory System</div>
+            <div className="login-brand-name">Asset Desk</div>
+            <div className="login-brand-sub">Asset Inventory Management</div>
           </div>
         </div>
         <div className="login-card">
@@ -162,7 +162,7 @@ export const Login: React.FC = () => {
         </div>
 
         <p className="login-footer">
-          © 2026 LIMS — Internal HR Tool. All rights reserved.
+          © 2026 Asset Desk — Internal Admin Tool. All rights reserved.
         </p>
       </div>
     </div>

@@ -126,14 +126,14 @@
 }
 
 .login-card-header {
-  margin-bottom: 2px;
+  margin-bottom: 20px;
 }
 
 .login-card-header h2 {
   font-size: 22px;
   font-weight: 700;
   color: var(--text-primary);
-  margin-bottom: 6px;
+  margin-bottom: 2px;
   letter-spacing: -0.4px;
 }
 

@@ -193,7 +193,7 @@ export const EmployeeList: React.FC = () => {
   // ── CSV import handler ─────────────────────────────────────────────────────
   const handleImport = async (data: Record<string, string>[]) => {
     try {
-      await api.post('/employees/bulk', {
+      const res = await api.post('/employees/bulk', {
         employees: data.map(i => ({
           first_name: normalizeKey(i, ['first name', 'first_name', 'firstname']),
           last_name:  normalizeKey(i, ['last name', 'last_name', 'lastname']),
@@ -206,10 +206,17 @@ export const EmployeeList: React.FC = () => {
           seniority:  normalizeKey(i, ['seniority', 'level']) || 'Associate',
         })),
       });
-      toast.success('Employees imported successfully');
+
+      if (res.errors && res.errors.length > 0) {
+        const msg = `Imported ${res.count} items. Errors: ${res.errors.map((e: any) => e.error).join(', ')}`;
+        throw new Error(msg);
+      }
+
+      toast.success(`Successfully imported ${res.count} employees`);
       queryClient.invalidateQueries({ queryKey: ['employees'] });
-    } catch {
-      toast.error('Import failed');
+    } catch (err: any) {
+      toast.error(err.message || 'Import failed');
+      throw err;
     }
   };
 
@@ -311,6 +318,13 @@ export const EmployeeList: React.FC = () => {
                 ['David', 'Wilson', 'david.wilson@example.com', 'Finance', 'Accountant', 'Lagos, Nigeria', 'Qucoon', 'Staff', 'Lead']
               ]}
               title="Employees"
+              tips={[
+                'Headers must match sample CSV.',
+                'Email addresses must be unique.',
+                'Departments should match existing ones.',
+                'Staff Type defaults to "Staff".',
+                'Seniority defaults to "Associate".'
+              ]}
             />
           </div>
 
@@ -476,15 +490,19 @@ export const EmployeeList: React.FC = () => {
           </>
         )}
 
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 16px', borderTop: `1px solid var(--border-default)` }}>
-          <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>Showing {pageFrom}–{pageTo} of {total}</span>
-          <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
-            <button type="button" disabled={page <= 1}          style={S.pagBtn(page <= 1)}          onClick={() => setPage(1)}><ChevronsLeft  size={12} /></button>
-            <button type="button" disabled={page <= 1}          style={S.pagBtn(page <= 1)}          onClick={() => setPage(p => p - 1)}><ChevronLeft   size={12} /></button>
-            <span style={{ fontSize: 12, color: 'var(--text-secondary)', padding: '0 4px' }}>Page {page} of {totalPages}</span>
-            <button type="button" disabled={page >= totalPages} style={S.pagBtn(page >= totalPages)} onClick={() => setPage(p => p + 1)}><ChevronRight  size={12} /></button>
-            <button type="button" disabled={page >= totalPages} style={S.pagBtn(page >= totalPages)} onClick={() => setPage(totalPages)}><ChevronsRight size={12} /></button>
-            <select style={{ background: 'var(--bg-surface)', border: `1px solid var(--border-default)`, borderRadius: 5, color: 'var(--text-primary)', fontSize: 12, padding: '4px 6px', cursor: 'pointer' }} defaultValue={20}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 16px', borderTop: `1px solid var(--border-default)`, flexWrap: 'wrap', gap: 12 }}>
+          <span style={{ fontSize: 12, color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>Showing {pageFrom}–{pageTo} of {total}</span>
+          <div style={{ display: 'flex', gap: 4, alignItems: 'center', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+            <div style={{ display: 'flex', gap: 4 }}>
+              <button type="button" disabled={page <= 1}          style={S.pagBtn(page <= 1)}          onClick={() => setPage(1)}><ChevronsLeft  size={12} /></button>
+              <button type="button" disabled={page <= 1}          style={S.pagBtn(page <= 1)}          onClick={() => setPage(p => p - 1)}><ChevronLeft   size={12} /></button>
+            </div>
+            <span style={{ fontSize: 12, color: 'var(--text-secondary)', padding: '0 4px', whiteSpace: 'nowrap' }}>Page {page} of {totalPages}</span>
+            <div style={{ display: 'flex', gap: 4 }}>
+              <button type="button" disabled={page >= totalPages} style={S.pagBtn(page >= totalPages)} onClick={() => setPage(p => p + 1)}><ChevronRight  size={12} /></button>
+              <button type="button" disabled={page >= totalPages} style={S.pagBtn(page >= totalPages)} onClick={() => setPage(totalPages)}><ChevronsRight size={12} /></button>
+            </div>
+            <select style={{ background: 'var(--bg-surface)', border: `1px solid var(--border-default)`, borderRadius: 5, color: 'var(--text-primary)', fontSize: 12, padding: '4px 6px', cursor: 'pointer', marginLeft: 4 }} defaultValue={20}>
               <option value={20}>20</option><option value={50}>50</option>
             </select>
           </div>
