@@ -434,17 +434,17 @@ export const AssignmentList: React.FC = () => {
                     <td style={{ ...S.td(), fontWeight: 500 }}>
                       <span style={{ color: 'var(--text-primary)', cursor: 'pointer' }}
                         onClick={() => navigate(`/employees/${a.employee_id}`)}>
-                        {(a as unknown as { employee?: { first_name?: string; last_name?: string } }).employee
-                          ? `${(a as unknown as { employee: { first_name: string; last_name: string } }).employee.first_name} ${(a as unknown as { employee: { first_name: string; last_name: string } }).employee.last_name}`
-                          : a.employee_id}
+                        {(a as any).employee
+                          ? `${(a as any).employee.first_name} ${(a as any).employee.last_name}`
+                          : ((a as any).employee_name || a.employee_id)}
                       </span>
                     </td>
                     <td style={S.td()}>
                       <span style={{ color: 'var(--text-primary)', cursor: 'pointer' }}
                         onClick={() => navigate(`/laptops/${a.laptop_id}`)}>
-                        {(a as unknown as { laptop?: { brand?: string; model?: string } }).laptop
-                          ? `${(a as unknown as { laptop: { brand: string; model: string } }).laptop.brand} ${(a as unknown as { laptop: { brand: string; model: string } }).laptop.model}`
-                          : a.laptop_id}
+                        {(a as any).laptop
+                          ? `${(a as any).laptop.brand} ${(a as any).laptop.model}`
+                          : ((a as any).asset_tag || a.laptop_id)}
                       </span>
                     </td>
                     <td style={S.td(true)}>{format(new Date(a.assigned_date), 'MMM d, yyyy')}</td>
@@ -476,15 +476,15 @@ export const AssignmentList: React.FC = () => {
             {assignments.map((a) => (
               <div key={`mobile-${a.id}`} className="mobile-data-card">
                 <div className="mobile-data-card-title">
-                  {(a as unknown as { laptop?: { brand?: string; model?: string } }).laptop
-                    ? `${(a as unknown as { laptop: { brand: string; model: string } }).laptop.brand} ${(a as unknown as { laptop: { brand: string; model: string } }).laptop.model}`
-                    : a.laptop_id}
+                  {(a as any).laptop
+                    ? `${(a as any).laptop.brand} ${(a as any).laptop.model}`
+                    : ((a as any).asset_tag || a.laptop_id)}
                 </div>
                 <div className="mobile-data-card-row">
                   <span>
-                    {(a as unknown as { employee?: { first_name?: string; last_name?: string } }).employee
-                      ? `${(a as unknown as { employee: { first_name: string; last_name: string } }).employee.first_name} ${(a as unknown as { employee: { first_name: string; last_name: string } }).employee.last_name}`
-                      : a.employee_id}
+                    {(a as any).employee
+                      ? `${(a as any).employee.first_name} ${(a as any).employee.last_name}`
+                      : ((a as any).employee_name || a.employee_id)}
                   </span>
                   <AssignBadge returned={!!a.returned_date} />
                 </div>
