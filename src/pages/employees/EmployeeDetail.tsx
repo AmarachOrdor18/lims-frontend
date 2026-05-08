@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
   ArrowLeft, Edit, Mail, Building2, Calendar,
-  Monitor, UserX, UserCheck, User, Briefcase, MapPin, Globe
+  Monitor, UserX, UserCheck, User, Briefcase, MapPin, Globe,
+  History as HistoryIcon
 } from 'lucide-react';
 import { Badge } from '../../components/UI/Badge';
 import { ConfirmModal } from '../../components/UI/ConfirmModal';
@@ -215,7 +216,7 @@ export const EmployeeDetail: React.FC = () => {
         </h3>
         {history.length === 0 ? (
           <div className="empty-state" style={{ padding: '48px 24px' }}>
-            <div className="empty-icon"><History size={24} /></div>
+            <div className="empty-icon"><HistoryIcon size={24} /></div>
             <h3 style={{ fontSize: 13 }}>No Assignment History</h3>
             <p style={{ fontSize: 12 }}>This employee hasn't been assigned any devices yet.</p>
           </div>
