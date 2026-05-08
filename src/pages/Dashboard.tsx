@@ -34,20 +34,27 @@ export const Dashboard: React.FC = () => {
         api.get('/dashboard/summary'),
         api.get('/dashboard/recent'),
       ]);
-      // Extract data from summaryRes
-      const summaryData = summaryRes.data || summaryRes;
+      
+      console.log('Dashboard Data Raw:', { summaryRes, recentRes });
+
+      // Robust Summary Extraction
+      const summaryData = summaryRes.data && !Array.isArray(summaryRes.data) ? summaryRes.data : summaryRes;
       setSummary(summaryData);
 
-      // Extract data from recentRes
+      // Robust Recent Extraction
+      let rData = [];
       if (Array.isArray(recentRes)) {
-        setRecent(recentRes);
+        rData = recentRes;
       } else if (recentRes.data && Array.isArray(recentRes.data)) {
-        setRecent(recentRes.data);
+        rData = recentRes.data;
       } else if (recentRes.data && Array.isArray(recentRes.data.data)) {
-        setRecent(recentRes.data.data);
+        rData = recentRes.data.data;
       } else if (Array.isArray(recentRes.recent)) {
-        setRecent(recentRes.recent);
+        rData = recentRes.recent;
       }
+      
+      console.log('Dashboard Recent Processed:', rData);
+      setRecent(rData);
     } catch (e) {
       console.error('Failed to fetch dashboard data', e);
     } finally {
@@ -149,7 +156,7 @@ export const Dashboard: React.FC = () => {
                   <div
                     key={item.id}
                     className="recent-assignment-row"
-                    onClick={() => navigate(`/laptops/${item.laptop?.id}`)}
+                    onClick={() => navigate(`/laptops/${item.laptop?.id || item.laptop_id}`)}
                   >
                     <div className="ra-icon">
                       <Monitor size={16} />
