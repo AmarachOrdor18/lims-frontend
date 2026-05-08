@@ -156,7 +156,7 @@ export const Dashboard: React.FC = () => {
                   <div
                     key={item.id}
                     className="recent-assignment-row"
-                    onClick={() => navigate(`/laptops/${item.laptop?.id || item.laptop_id}`)}
+                    onClick={() => navigate(`/laptops/${item.laptop_id || item.laptop?.id}`)}
                   >
                     <div className="ra-icon">
                       <Monitor size={16} />
@@ -164,21 +164,23 @@ export const Dashboard: React.FC = () => {
                     <div className="recent-assignment-asset">
                       <div>
                         <div className="ra-tag">
-                          {item.laptop?.asset_tag || item.asset_tag || `${item.laptop?.brand || item.brand || ''} ${item.laptop?.model || item.model || ''}`}
+                          {item.asset_tag || item.laptop?.asset_tag || `${item.brand || item.laptop?.brand || ''} ${item.model || item.laptop?.model || ''}`.trim() || 'Unknown Device'}
                         </div>
                         <div className="ra-device">
-                          {item.laptop?.brand || item.brand} {item.laptop?.model || item.model}
+                          {item.brand || item.laptop?.brand} {item.model || item.laptop?.model}
                         </div>
                       </div>
                     </div>
                     <div className="ra-employee">
                       <div className="ra-user-avatar">
-                        {(item.employee?.name || item.employee_name || '?').charAt(0)}
+                        {(item.employee_name || item.employee?.name || (item.employee?.first_name ? `${item.employee.first_name} ${item.employee.last_name}` : '') || '?').charAt(0).toUpperCase()}
                       </div>
                       <div className="ra-employee-name">
-                        <span className="hide-on-mobile">{item.employee?.name || item.employee_name}</span>
+                        <span className="hide-on-mobile">
+                          {item.employee_name || item.employee?.name || (item.employee?.first_name ? `${item.employee.first_name} ${item.employee.last_name}` : '')}
+                        </span>
                         <span className="show-on-mobile" style={{ display: 'none' }}>
-                          {(item.employee?.name || item.employee_name || '').split(' ')[0]}
+                          {(item.employee_name || item.employee?.name || item.employee?.first_name || '').split(' ')[0]}
                         </span>
                       </div>
                     </div>
