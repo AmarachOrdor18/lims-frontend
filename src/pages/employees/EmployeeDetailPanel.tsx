@@ -180,14 +180,15 @@ export const EmployeeDetailPanel: React.FC<EmployeeDetailPanelProps> = ({
             </div>
 
             {history.length === 0 ? (
-              <div className="sp-empty-assignment">
-                <p>No device history</p>
+              <div className="sp-empty-history">
+                <div className="sp-empty-history-icon"><Clock size={20} /></div>
+                <div className="sp-empty-history-text">No device history found</div>
               </div>
             ) : (
               history.map((a: any) => (
                 <div className="sp-device-card" key={a.id}>
                   <div className="sp-device-card-header">
-                    <div className="sp-device-card-tag">{a.laptop?.asset_tag ?? '—'}</div>
+                    <div className="sp-device-card-tag">{a.laptop?.asset_tag ?? 'N/A'}</div>
                     {!a.returned_date ? (
                       <Badge status="ASSIGNED" />
                     ) : (

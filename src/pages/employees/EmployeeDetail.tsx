@@ -214,9 +214,16 @@ export const EmployeeDetail: React.FC = () => {
           Assignment History ({history.length})
         </h3>
         {history.length === 0 ? (
-          <div className="empty-state" style={{ padding: '32px 16px' }}>
-            <div className="empty-icon"><Monitor size={18} /></div>
-            <h3 style={{ fontSize: 13 }}>No assignments yet</h3>
+          <div className="empty-state-container">
+            <div className="empty-state-content">
+              <div className="empty-state-icon">
+                <History size={24} />
+              </div>
+              <div className="empty-state-text">
+                <h4>No Assignment History</h4>
+                <p>This employee hasn't been assigned any devices yet.</p>
+              </div>
+            </div>
           </div>
         ) : (
           <table className="data-table">
@@ -233,7 +240,7 @@ export const EmployeeDetail: React.FC = () => {
               {history.map(a => (
                 <tr key={a.id} onClick={() => a.laptop && navigate(`/laptops/${a.laptop.id}`)}>
                   <td style={{ fontFamily: 'monospace', fontWeight: 600, fontSize: 12 }}>
-                    {a.laptop?.asset_tag ?? '—'}
+                    {a.laptop?.asset_tag ?? 'N/A'}
                   </td>
                   <td className="text-secondary text-sm">
                     {a.laptop?.brand} {a.laptop?.model}
@@ -242,7 +249,7 @@ export const EmployeeDetail: React.FC = () => {
                     {format(new Date(a.assigned_date), 'd MMM yyyy')}
                   </td>
                   <td className="text-secondary text-sm">
-                    {a.returned_date ? format(new Date(a.returned_date), 'd MMM yyyy') : '—'}
+                    {a.returned_date ? format(new Date(a.returned_date), 'd MMM yyyy') : <span className="text-active">Present</span>}
                   </td>
                   <td>
                     {!a.returned_date
