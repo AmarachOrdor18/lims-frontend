@@ -34,11 +34,19 @@ export const Dashboard: React.FC = () => {
         api.get('/dashboard/summary'),
         api.get('/dashboard/recent'),
       ]);
-      if (summaryRes.data) setSummary(summaryRes.data.data || summaryRes.data);
-      if (recentRes.data && Array.isArray(recentRes.data.data)) {
-        setRecent(recentRes.data.data);
-      } else if (Array.isArray(recentRes.data)) {
+      // Extract data from summaryRes
+      const summaryData = summaryRes.data || summaryRes;
+      setSummary(summaryData);
+
+      // Extract data from recentRes
+      if (Array.isArray(recentRes)) {
+        setRecent(recentRes);
+      } else if (recentRes.data && Array.isArray(recentRes.data)) {
         setRecent(recentRes.data);
+      } else if (recentRes.data && Array.isArray(recentRes.data.data)) {
+        setRecent(recentRes.data.data);
+      } else if (Array.isArray(recentRes.recent)) {
+        setRecent(recentRes.recent);
       }
     } catch (e) {
       console.error('Failed to fetch dashboard data', e);

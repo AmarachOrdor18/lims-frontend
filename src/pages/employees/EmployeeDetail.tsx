@@ -214,16 +214,10 @@ export const EmployeeDetail: React.FC = () => {
           Assignment History ({history.length})
         </h3>
         {history.length === 0 ? (
-          <div className="empty-state-container">
-            <div className="empty-state-content">
-              <div className="empty-state-icon">
-                <History size={24} />
-              </div>
-              <div className="empty-state-text">
-                <h4>No Assignment History</h4>
-                <p>This employee hasn't been assigned any devices yet.</p>
-              </div>
-            </div>
+          <div className="empty-state" style={{ padding: '48px 24px' }}>
+            <div className="empty-icon"><History size={24} /></div>
+            <h3 style={{ fontSize: 13 }}>No Assignment History</h3>
+            <p style={{ fontSize: 12 }}>This employee hasn't been assigned any devices yet.</p>
           </div>
         ) : (
           <table className="data-table">

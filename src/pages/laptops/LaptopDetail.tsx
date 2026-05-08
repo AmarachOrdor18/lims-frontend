@@ -255,25 +255,25 @@ export const LaptopDetail: React.FC = () => {
             </thead>
             <tbody>
               {history.map(record => (
-                <tr key={record.id} onClick={() => record.employee && navigate(`/employees/${record.employee.id}`)}>
+                <tr key={record.id} onClick={() => (record.employee?.id || record.employee_id) && navigate(`/employees/${record.employee?.id || record.employee_id}`)}>
                   <td>
                     <div className="flex items-center gap-3">
                       <div className="ra-user-avatar" style={{ width: 28, height: 28, fontSize: 11 }}>
-                        {record.employee ? (record.employee.first_name + " " + record.employee.last_name).charAt(0) : '?'}
+                        {(record.employee?.name || record.employee_name || '?').charAt(0)}
                       </div>
                       <div style={{ fontWeight: 600, fontSize: 13 }}>
-                        {record.employee ? `${record.employee.first_name} ${record.employee.last_name}` : 'Unknown'}
+                        {record.employee?.name || record.employee_name || 'Unknown'}
                       </div>
                     </div>
                   </td>
                   <td className="text-secondary text-sm">
-                    {record.employee?.department ?? '—'}
+                    {record.employee?.department || record.department || '—'}
                   </td>
                   <td className="text-secondary text-sm">
                     {format(new Date(record.assigned_date), 'd MMM yyyy')}
                   </td>
                   <td className="text-secondary text-sm">
-                    {record.returned_date ? format(new Date(record.returned_date), 'd MMM yyyy') : '—'}
+                    {record.returned_date ? format(new Date(record.returned_date), 'd MMM yyyy') : <span className="text-active">Present</span>}
                   </td>
                   <td>
                     {!record.returned_date
