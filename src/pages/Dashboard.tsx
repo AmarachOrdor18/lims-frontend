@@ -141,25 +141,25 @@ export const Dashboard: React.FC = () => {
                   <div
                     key={item.id}
                     className="recent-assignment-row"
-                    onClick={() => navigate(`/laptops/${item.laptop_id}`)}
+                    onClick={() => navigate(`/laptops/${item.laptop?.id}`)}
                   >
                     <div className="ra-icon">
                       <Monitor size={16} />
                     </div>
                     <div className="recent-assignment-asset">
                       <div>
-                        <div className="ra-tag">{item.asset_tag || `${item.brand || ''} ${item.model || ''}`}</div>
-                        <div className="ra-device">{item.brand} {item.model}</div>
+                        <div className="ra-tag">{item.laptop?.asset_tag || `${item.laptop?.brand || ''} ${item.laptop?.model || ''}`}</div>
+                        <div className="ra-device">{item.laptop?.brand} {item.laptop?.model}</div>
                       </div>
                     </div>
                     <div className="ra-employee">
                       <div className="ra-user-avatar">
-                        {item.employee_name?.charAt(0) ?? '?'}
+                        {item.employee?.name?.charAt(0) ?? '?'}
                       </div>
                       <div className="ra-employee-name">
-                        <span className="hide-on-mobile">{item.employee_name}</span>
+                        <span className="hide-on-mobile">{item.employee?.name}</span>
                         <span className="show-on-mobile" style={{ display: 'none' }}>
-                          {item.employee_name?.split(' ')[0]}
+                          {item.employee?.name?.split(' ')[0]}
                         </span>
                       </div>
                     </div>
