@@ -188,7 +188,7 @@ export const EmployeeDetailPanel: React.FC<EmployeeDetailPanelProps> = ({
               history.map((a: any) => (
                 <div className="sp-device-card" key={a.id}>
                   <div className="sp-device-card-header">
-                    <div className="sp-device-card-tag">{a.laptop?.asset_tag ?? 'N/A'}</div>
+                    <div className="sp-device-card-tag">{a.laptop?.asset_tag || a.asset_tag || 'N/A'}</div>
                     {!a.returned_date ? (
                       <Badge status="ASSIGNED" />
                     ) : (
@@ -198,7 +198,7 @@ export const EmployeeDetailPanel: React.FC<EmployeeDetailPanelProps> = ({
                     )}
                   </div>
                   <div className="sp-device-card-name">
-                    {a.laptop?.brand} {a.laptop?.model}
+                    {a.laptop?.brand || a.brand} {a.laptop?.model || a.model}
                   </div>
                   <div className="sp-device-card-dates">
                     {format(new Date(a.assigned_date), 'MMM d, yyyy')}

@@ -238,12 +238,12 @@ export const EmployeeDetail: React.FC = () => {
             </thead>
             <tbody>
               {history.map(a => (
-                <tr key={a.id} onClick={() => a.laptop && navigate(`/laptops/${a.laptop.id}`)}>
+                <tr key={a.id} onClick={() => (a.laptop?.id || a.laptop_id) && navigate(`/laptops/${a.laptop?.id || a.laptop_id}`)}>
                   <td style={{ fontFamily: 'monospace', fontWeight: 600, fontSize: 12 }}>
-                    {a.laptop?.asset_tag ?? 'N/A'}
+                    {a.laptop?.asset_tag || a.asset_tag || 'N/A'}
                   </td>
                   <td className="text-secondary text-sm">
-                    {a.laptop?.brand} {a.laptop?.model}
+                    {a.laptop?.brand || a.brand} {a.laptop?.model || a.model}
                   </td>
                   <td className="text-secondary text-sm">
                     {format(new Date(a.assigned_date), 'd MMM yyyy')}
