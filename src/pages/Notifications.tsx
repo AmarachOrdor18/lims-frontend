@@ -33,13 +33,13 @@ export const Notifications: React.FC = () => {
       }
       
       const mappedAlerts = dashAlerts.map(alert => ({
-        id: `sys-alert-${alert.laptop.id}`,
+        id: `sys-alert-${alert.laptop_id || alert.id}`,
         type: 'ALERT',
         title: 'Device Retrieval Required',
-        message: `${alert.employee.first_name} ${alert.employee.last_name} (${alert.employee.status}) still holds ${alert.laptop.brand} ${alert.laptop.model}.`,
-        created_at: alert.assignment_date || new Date().toISOString(),
+        message: `${alert.employee_name} (${alert.employee_status}) still holds ${alert.brand} ${alert.model}.`,
+        created_at: alert.assigned_date || new Date().toISOString(),
         read: false,
-        metadata: { laptop_id: alert.laptop.id }
+        metadata: { laptop_id: alert.laptop_id }
       }));
       
       setNotifications([...mappedAlerts, ...realTimeNotifs]);

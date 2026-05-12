@@ -187,9 +187,7 @@ export const EmployeeList: React.FC = () => {
         const n = filters.name.toLowerCase();
         if (!`${emp.first_name} ${emp.last_name}`.toLowerCase().includes(n)) return false;
       }
-      // Laptop assignment status
-      if (filters.has_laptop === 'false' && (emp as any).assigned_asset_tag) return false;
-      if (filters.has_laptop === 'true' && !(emp as any).assigned_asset_tag) return false;
+      // has_laptop is now handled server-side — no client-side filtering needed
       
       return true;
     });
