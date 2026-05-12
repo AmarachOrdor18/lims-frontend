@@ -37,6 +37,8 @@ const EMPTY_FILTERS: LaptopFilters = {
 const BRAND_OPTIONS   = ['Dell','Apple','HP','Lenovo','Microsoft','ASUS','Acer','Samsung'];
 const STATUS_OPTIONS  = ['AVAILABLE','ASSIGNED','RETIRED'];
 const CONDITION_OPTIONS = ['FUNCTIONAL','FAULTY'];
+const PAGE_SIZE = 20;
+const FILTERED_PAGE_SIZE = 1000;
 
 // ─── Tiny shared sub-components ───────────────────────────────────────────────
 
@@ -180,11 +182,17 @@ export const LaptopList: React.FC = () => {
     return () => document.removeEventListener('mousedown', handler);
   }, []);
 
+  const hasFilters =
+    !!(filters.search || filters.asset_tag || filters.model || filters.serial_number ||
+       filters.brands.length || filters.statuses.length || filters.conditions.length);
+
   // ── Data fetching ──────────────────────────────────────────────────────────
   const { data: response, isLoading, refetch } = useQuery({
     queryKey: ['laptops', page, filters, sortConfig],
     queryFn: async ({ signal }) => {
-      let q = `?page=${page}&limit=20`;
+      const queryPage = hasFilters ? 1 : page;
+      const queryLimit = hasFilters ? FILTERED_PAGE_SIZE : PAGE_SIZE;
+      let q = `?page=${queryPage}&limit=${queryLimit}`;
       if (filters.statuses.length)      q += `&status=${filters.statuses.join(',')}`;
       if (filters.conditions.length)    q += `&condition=${filters.conditions.join(',')}`;
       if (filters.brands.length)        q += `&brand=${filters.brands.join(',')}`;
@@ -199,7 +207,6 @@ export const LaptopList: React.FC = () => {
   });
 
   const rawLaptops: Laptop[] = response?.data  ?? [];
-  const total:      number   = response?.total ?? 0;
   
   // ── Client-side filtering fallback ─────────────────────────────────────────
   const laptops = useMemo(() => {
@@ -215,10 +222,14 @@ export const LaptopList: React.FC = () => {
       if (filters.asset_tag && !lp.asset_tag.toLowerCase().includes(filters.asset_tag.toLowerCase())) return false;
       if (filters.model && !lp.model.toLowerCase().includes(filters.model.toLowerCase())) return false;
       if (filters.serial_number && !lp.serial_number.toLowerCase().includes(filters.serial_number.toLowerCase())) return false;
+      if (filters.brands.length && !filters.brands.includes(lp.brand)) return false;
+      if (filters.statuses.length && !filters.statuses.includes(lp.status)) return false;
+      if (filters.conditions.length && !filters.conditions.includes(lp.condition)) return false;
       
       return true;
     });
   }, [rawLaptops, filters]);
+  const total: number = hasFilters ? laptops.length : (response?.total ?? 0);
 
   // ── Excel export helper ────────────────────────────────────────────────────
   function downloadExcel(filename: string, rows: Laptop[]) {
@@ -276,10 +287,6 @@ export const LaptopList: React.FC = () => {
     setPendingFilters(EMPTY_FILTERS);
   };
 
-  const hasFilters =
-    !!(filters.search || filters.asset_tag || filters.model || filters.serial_number ||
-       filters.brands.length || filters.statuses.length || filters.conditions.length);
-
   const openAssignModal = (laptop: Laptop) => {
     if (laptop.status === 'RETIRED') {
       toast.error('Retired laptops cannot be assigned');
@@ -291,9 +298,10 @@ export const LaptopList: React.FC = () => {
   };
 
   // ── Pagination ─────────────────────────────────────────────────────────────
-  const totalPages = Math.ceil(total / 20) || 1;
-  const pageFrom   = total === 0 ? 0 : (page - 1) * 20 + 1;
-  const pageTo     = Math.min(total, page * 20);
+  const currentPage = hasFilters ? 1 : page;
+  const totalPages = hasFilters ? 1 : Math.ceil(total / PAGE_SIZE) || 1;
+  const pageFrom   = total === 0 ? 0 : (currentPage - 1) * PAGE_SIZE + 1;
+  const pageTo     = hasFilters ? total : Math.min(total, currentPage * PAGE_SIZE);
 
   // ── Get assigned employee name — backend returns this flat ─────────────────
   const getAssigneeName = (lp: any): string => {
@@ -628,13 +636,13 @@ export const LaptopList: React.FC = () => {
           <span style={{ fontSize: 12, color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>Showing {pageFrom}–{pageTo} of {total}</span>
           <div style={{ display: 'flex', gap: 4, alignItems: 'center', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
             <div style={{ display: 'flex', gap: 4 }}>
-              <button type="button" disabled={page <= 1} style={S.pagBtn(page <= 1)} onClick={() => setPage(1)}><ChevronsLeft  size={12} /></button>
-              <button type="button" disabled={page <= 1} style={S.pagBtn(page <= 1)} onClick={() => setPage(p => p - 1)}><ChevronLeft   size={12} /></button>
+              <button type="button" disabled={currentPage <= 1} style={S.pagBtn(currentPage <= 1)} onClick={() => setPage(1)}><ChevronsLeft  size={12} /></button>
+              <button type="button" disabled={currentPage <= 1} style={S.pagBtn(currentPage <= 1)} onClick={() => setPage(p => p - 1)}><ChevronLeft   size={12} /></button>
             </div>
-            <span style={{ fontSize: 12, color: 'var(--text-secondary)', padding: '0 4px', whiteSpace: 'nowrap' }}>Page {page} of {totalPages}</span>
+            <span style={{ fontSize: 12, color: 'var(--text-secondary)', padding: '0 4px', whiteSpace: 'nowrap' }}>Page {currentPage} of {totalPages}</span>
             <div style={{ display: 'flex', gap: 4 }}>
-              <button type="button" disabled={page >= totalPages} style={S.pagBtn(page >= totalPages)} onClick={() => setPage(p => p + 1)}><ChevronRight  size={12} /></button>
-              <button type="button" disabled={page >= totalPages} style={S.pagBtn(page >= totalPages)} onClick={() => setPage(totalPages)}><ChevronsRight size={12} /></button>
+              <button type="button" disabled={currentPage >= totalPages} style={S.pagBtn(currentPage >= totalPages)} onClick={() => setPage(p => p + 1)}><ChevronRight  size={12} /></button>
+              <button type="button" disabled={currentPage >= totalPages} style={S.pagBtn(currentPage >= totalPages)} onClick={() => setPage(totalPages)}><ChevronsRight size={12} /></button>
             </div>
             <select
               style={{ background: 'var(--bg-elevated)', border: `1px solid var(--border-default)`, borderRadius: 5, color: 'var(--text-primary)', fontSize: 12, padding: '4px 6px', cursor: 'pointer', marginLeft: 4 }}

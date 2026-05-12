@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import {
   Clock, Monitor, User, Calendar, Activity, RotateCcw,
@@ -32,6 +32,8 @@ interface AssignmentFilters {
 const EMPTY_FILTERS: AssignmentFilters = {
   employee: '', laptop: '', statuses: [], date_filter: 'all', date_start: '', date_end: '',
 };
+const PAGE_SIZE = 20;
+const FILTERED_PAGE_SIZE = 1000;
 
 const STATUS_OPTIONS = [
   { value: 'ACTIVE', label: 'Assigned' },
@@ -146,10 +148,16 @@ export const AssignmentList: React.FC = () => {
   }, []);
 
   // ── Data ──────────────────────────────────────────────────────────────────
+  const hasFilters =
+    !!(laptopId || filters.employee || filters.laptop ||
+       filters.statuses.length || filters.date_filter !== 'all');
+
   const { data: response, isLoading, refetch } = useQuery({
     queryKey: ['assignments', page, laptopId, filters, sortConfig],
     queryFn: async ({ signal }) => {
-      let q = `?page=${page}&limit=20`;
+      const queryPage = hasFilters ? 1 : page;
+      const queryLimit = hasFilters ? FILTERED_PAGE_SIZE : PAGE_SIZE;
+      let q = `?page=${queryPage}&limit=${queryLimit}`;
       if (laptopId)                  q += `&laptop_id=${laptopId}`;
       if (filters.statuses.length)   q += `&status=${filters.statuses.join(',')}`;
       if (filters.employee)          q += `&employee_search=${encodeURIComponent(filters.employee)}`;
@@ -166,8 +174,48 @@ export const AssignmentList: React.FC = () => {
     placeholderData: prev => prev,
   });
 
-  const assignments: Assignment[] = response?.data  ?? [];
-  const total:       number       = response?.total ?? 0;
+  const rawAssignments: Assignment[] = response?.data  ?? [];
+  const assignments = useMemo(() => {
+    return rawAssignments.filter((a) => {
+      if (laptopId && a.laptop_id !== laptopId) return false;
+
+      if (filters.employee) {
+        const s = filters.employee.toLowerCase();
+        const employeeName = (a as any).employee
+          ? `${(a as any).employee.first_name} ${(a as any).employee.last_name}`
+          : ((a as any).employee_name || a.employee_id || '');
+        if (!employeeName.toLowerCase().includes(s)) return false;
+      }
+
+      if (filters.laptop) {
+        const s = filters.laptop.toLowerCase();
+        const laptopName = (a as any).laptop
+          ? `${(a as any).laptop.asset_tag || ''} ${(a as any).laptop.brand || ''} ${(a as any).laptop.model || ''}`
+          : `${(a as any).asset_tag || ''} ${a.laptop_id || ''}`;
+        if (!laptopName.toLowerCase().includes(s)) return false;
+      }
+
+      if (filters.statuses.includes('ACTIVE') && a.returned_date) return false;
+      if (filters.statuses.includes('RETURNED') && !a.returned_date) return false;
+
+      if (filters.date_filter !== 'all') {
+        const assigned = new Date(a.assigned_date);
+        if (Number.isNaN(assigned.getTime())) return false;
+        const now = new Date();
+        if (filters.date_filter === '7days' && assigned < new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)) return false;
+        if (filters.date_filter === '30days' && assigned < new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000)) return false;
+        if (filters.date_filter === 'custom') {
+          const start = filters.date_start ? new Date(`${filters.date_start}T00:00:00`) : null;
+          const end = filters.date_end ? new Date(`${filters.date_end}T23:59:59`) : null;
+          if (start && assigned < start) return false;
+          if (end && assigned > end) return false;
+        }
+      }
+
+      return true;
+    });
+  }, [rawAssignments, filters, laptopId]);
+  const total: number = hasFilters ? assignments.length : (response?.total ?? 0);
 
 
   // ── Export ────────────────────────────────────────────────────────────────
@@ -212,13 +260,10 @@ export const AssignmentList: React.FC = () => {
   const applyFilters = () => { setFilters({ ...pendingFilters }); setFilterOpen(false); };
   const resetFilters = () => { setFilters(EMPTY_FILTERS); setPendingFilters(EMPTY_FILTERS); };
 
-  const hasFilters =
-    !!(filters.employee || filters.laptop ||
-       filters.statuses.length || filters.date_filter !== 'all');
-
-  const totalPages = Math.ceil(total / 20) || 1;
-  const pageFrom   = total === 0 ? 0 : (page - 1) * 20 + 1;
-  const pageTo     = Math.min(total, page * 20);
+  const currentPage = hasFilters ? 1 : page;
+  const totalPages = hasFilters ? 1 : Math.ceil(total / PAGE_SIZE) || 1;
+  const pageFrom   = total === 0 ? 0 : (currentPage - 1) * PAGE_SIZE + 1;
+  const pageTo     = hasFilters ? total : Math.min(total, currentPage * PAGE_SIZE);
 
   // ── Inline style helpers ──────────────────────────────────────────────────
   const S = {
@@ -509,11 +554,11 @@ export const AssignmentList: React.FC = () => {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 16px', borderTop: `1px solid var(--border-default)` }}>
           <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>Showing {pageFrom}–{pageTo} of {total}</span>
           <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
-            <button type="button" disabled={page <= 1}          style={S.pagBtn(page <= 1)}          onClick={() => setPage(1)}><ChevronsLeft  size={12} /></button>
-            <button type="button" disabled={page <= 1}          style={S.pagBtn(page <= 1)}          onClick={() => setPage(p => p - 1)}><ChevronLeft   size={12} /></button>
-            <span style={{ fontSize: 12, color: 'var(--text-secondary)', padding: '0 4px' }}>Page {page} of {totalPages}</span>
-            <button type="button" disabled={page >= totalPages} style={S.pagBtn(page >= totalPages)} onClick={() => setPage(p => p + 1)}><ChevronRight  size={12} /></button>
-            <button type="button" disabled={page >= totalPages} style={S.pagBtn(page >= totalPages)} onClick={() => setPage(totalPages)}><ChevronsRight size={12} /></button>
+            <button type="button" disabled={currentPage <= 1}          style={S.pagBtn(currentPage <= 1)}          onClick={() => setPage(1)}><ChevronsLeft  size={12} /></button>
+            <button type="button" disabled={currentPage <= 1}          style={S.pagBtn(currentPage <= 1)}          onClick={() => setPage(p => p - 1)}><ChevronLeft   size={12} /></button>
+            <span style={{ fontSize: 12, color: 'var(--text-secondary)', padding: '0 4px' }}>Page {currentPage} of {totalPages}</span>
+            <button type="button" disabled={currentPage >= totalPages} style={S.pagBtn(currentPage >= totalPages)} onClick={() => setPage(p => p + 1)}><ChevronRight  size={12} /></button>
+            <button type="button" disabled={currentPage >= totalPages} style={S.pagBtn(currentPage >= totalPages)} onClick={() => setPage(totalPages)}><ChevronsRight size={12} /></button>
             <select style={{ background: 'var(--bg-elevated)', border: `1px solid var(--border-default)`, borderRadius: 5, color: 'var(--text-primary)', fontSize: 12, padding: '4px 6px', cursor: 'pointer' }} defaultValue={20}>
               <option value={20}>20</option><option value={50}>50</option>
             </select>

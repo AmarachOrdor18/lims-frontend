@@ -31,6 +31,8 @@ interface EmployeeFilters {
 const EMPTY_FILTERS: EmployeeFilters = {
   search: '', name: '', email: '', asset_tag: '', departments: [], statuses: [], has_laptop: 'all',
 };
+const PAGE_SIZE = 20;
+const FILTERED_PAGE_SIZE = 1000;
 
 const DEFAULT_DEPARTMENTS = [
   'Engineering','HR','Finance','Operations','ICT',
@@ -150,10 +152,16 @@ export const EmployeeList: React.FC = () => {
   }, []);
 
   // ── Data ──────────────────────────────────────────────────────────────────
+  const hasFilters =
+    !!(filters.search || filters.name || filters.email || filters.asset_tag ||
+       filters.departments.length || filters.statuses.length || filters.has_laptop !== 'all');
+
   const { data: response, isLoading, refetch } = useQuery({
     queryKey: ['employees', page, filters, sortConfig],
     queryFn: async ({ signal }) => {
-      let q = `?page=${page}&limit=20`;
+      const queryPage = hasFilters ? 1 : page;
+      const queryLimit = hasFilters ? FILTERED_PAGE_SIZE : PAGE_SIZE;
+      let q = `?page=${queryPage}&limit=${queryLimit}`;
       if (filters.statuses.length)       q += `&status=${filters.statuses.join(',')}`;
       if (filters.departments.length)    q += `&department=${filters.departments.join(',')}`;
       if (filters.search)                q += `&q=${encodeURIComponent(filters.search)}`;
@@ -168,7 +176,6 @@ export const EmployeeList: React.FC = () => {
   });
 
   const rawEmployees: Employee[] = response?.data  ?? [];
-  const total:        number     = response?.total ?? 0;
 
   // ── Client-side filtering fallback ─────────────────────────────────────────
   // We filter locally to ensure the UI is accurate even if backend filtering fails
@@ -187,11 +194,17 @@ export const EmployeeList: React.FC = () => {
         const n = filters.name.toLowerCase();
         if (!`${emp.first_name} ${emp.last_name}`.toLowerCase().includes(n)) return false;
       }
-      // has_laptop is now handled server-side — no client-side filtering needed
-      
+      if (filters.email && !emp.email.toLowerCase().includes(filters.email.toLowerCase())) return false;
+      if (filters.asset_tag && !(emp as any).assigned_asset_tag?.toLowerCase().includes(filters.asset_tag.toLowerCase())) return false;
+      if (filters.departments.length && !filters.departments.includes(emp.department)) return false;
+      if (filters.statuses.length && !filters.statuses.includes(emp.status)) return false;
+      if (filters.has_laptop === 'true' && !(emp as any).assigned_asset_tag) return false;
+      if (filters.has_laptop === 'false' && (emp as any).assigned_asset_tag) return false;
+
       return true;
     });
   }, [rawEmployees, filters]);
+  const total: number = hasFilters ? employees.length : (response?.total ?? 0);
 
   // Build dept options from live data
   useEffect(() => {
@@ -253,13 +266,10 @@ export const EmployeeList: React.FC = () => {
   const applyFilters = () => { setFilters({ ...pendingFilters }); setFilterOpen(false); };
   const resetFilters = () => { setFilters(EMPTY_FILTERS); setPendingFilters(EMPTY_FILTERS); };
 
-  const hasFilters =
-    !!(filters.search || filters.name || filters.email || filters.asset_tag ||
-       filters.departments.length || filters.statuses.length || filters.has_laptop !== 'all');
-
-  const totalPages = Math.ceil(total / 20) || 1;
-  const pageFrom   = total === 0 ? 0 : (page - 1) * 20 + 1;
-  const pageTo     = Math.min(total, page * 20);
+  const currentPage = hasFilters ? 1 : page;
+  const totalPages = hasFilters ? 1 : Math.ceil(total / PAGE_SIZE) || 1;
+  const pageFrom   = total === 0 ? 0 : (currentPage - 1) * PAGE_SIZE + 1;
+  const pageTo     = hasFilters ? total : Math.min(total, currentPage * PAGE_SIZE);
 
   // ── Get assigned asset tag — backend now returns this directly ─────────────
   const getAssignedAssetTag = (emp: any): string => {
@@ -563,13 +573,13 @@ export const EmployeeList: React.FC = () => {
           <span style={{ fontSize: 12, color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>Showing {pageFrom}–{pageTo} of {total}</span>
           <div style={{ display: 'flex', gap: 4, alignItems: 'center', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
             <div style={{ display: 'flex', gap: 4 }}>
-              <button type="button" disabled={page <= 1}          style={S.pagBtn(page <= 1)}          onClick={() => setPage(1)}><ChevronsLeft  size={12} /></button>
-              <button type="button" disabled={page <= 1}          style={S.pagBtn(page <= 1)}          onClick={() => setPage(p => p - 1)}><ChevronLeft   size={12} /></button>
+              <button type="button" disabled={currentPage <= 1}          style={S.pagBtn(currentPage <= 1)}          onClick={() => setPage(1)}><ChevronsLeft  size={12} /></button>
+              <button type="button" disabled={currentPage <= 1}          style={S.pagBtn(currentPage <= 1)}          onClick={() => setPage(p => p - 1)}><ChevronLeft   size={12} /></button>
             </div>
-            <span style={{ fontSize: 12, color: 'var(--text-secondary)', padding: '0 4px', whiteSpace: 'nowrap' }}>Page {page} of {totalPages}</span>
+            <span style={{ fontSize: 12, color: 'var(--text-secondary)', padding: '0 4px', whiteSpace: 'nowrap' }}>Page {currentPage} of {totalPages}</span>
             <div style={{ display: 'flex', gap: 4 }}>
-              <button type="button" disabled={page >= totalPages} style={S.pagBtn(page >= totalPages)} onClick={() => setPage(p => p + 1)}><ChevronRight  size={12} /></button>
-              <button type="button" disabled={page >= totalPages} style={S.pagBtn(page >= totalPages)} onClick={() => setPage(totalPages)}><ChevronsRight size={12} /></button>
+              <button type="button" disabled={currentPage >= totalPages} style={S.pagBtn(currentPage >= totalPages)} onClick={() => setPage(p => p + 1)}><ChevronRight  size={12} /></button>
+              <button type="button" disabled={currentPage >= totalPages} style={S.pagBtn(currentPage >= totalPages)} onClick={() => setPage(totalPages)}><ChevronsRight size={12} /></button>
             </div>
             <select style={{ background: 'var(--bg-surface)', border: `1px solid var(--border-default)`, borderRadius: 5, color: 'var(--text-primary)', fontSize: 12, padding: '4px 6px', cursor: 'pointer', marginLeft: 4 }} defaultValue={20}>
               <option value={20}>20</option><option value={50}>50</option>
