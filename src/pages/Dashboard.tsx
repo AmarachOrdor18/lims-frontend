@@ -16,6 +16,51 @@ import { useAuthStore } from '../store/authStore';
 import type { DashboardSummary } from '../types';
 import './Dashboard.css';
 
+const asNumber = (value: unknown): number => {
+  const n = Number(value);
+  return Number.isFinite(n) ? n : 0;
+};
+
+const readCount = (source: any, keys: string[]): number => {
+  if (!source) return 0;
+  for (const key of keys) {
+    const value = source[key];
+    if (value !== undefined && value !== null) return asNumber(value);
+  }
+  return 0;
+};
+
+const normalizeDashboardSummary = (raw: any, faultyTotal?: number): DashboardSummary => {
+  const data = raw?.data ?? raw ?? {};
+  const statuses = data.status_counts ?? data.statusCounts ?? data.by_status ?? data.byStatus ?? {};
+  const conditions = data.condition_counts ?? data.conditionCounts ?? data.by_condition ?? data.byCondition ?? {};
+  const employees = data.employee_counts ?? data.employeeCounts ?? data.employees ?? {};
+
+  const assigned = readCount(data, ['assigned', 'assigned_laptops', 'assignedLaptops']) || readCount(statuses, ['ASSIGNED', 'assigned']);
+  const available = readCount(data, ['available', 'available_laptops', 'availableLaptops']) || readCount(statuses, ['AVAILABLE', 'available']);
+  const retired = readCount(data, ['retired', 'retired_laptops', 'retiredLaptops']) || readCount(statuses, ['RETIRED', 'retired']);
+  const faulty = faultyTotal ?? (
+    readCount(data, ['faulty', 'faulty_laptops', 'faultyLaptops']) || readCount(conditions, ['FAULTY', 'faulty'])
+  );
+  const total = readCount(data, ['total', 'total_laptops', 'totalLaptops']) || assigned + available + retired;
+
+  return {
+    total,
+    available,
+    assigned,
+    faulty,
+    retired,
+    active_employees: readCount(data, ['active_employees', 'activeEmployees']) || readCount(employees, ['ACTIVE', 'active']),
+    inactive_employees: readCount(data, ['inactive_employees', 'inactiveEmployees']) || readCount(employees, ['INACTIVE', 'inactive']),
+  };
+};
+
+const toValidDate = (value: unknown): Date | null => {
+  if (!value) return null;
+  const date = new Date(value as string | number | Date);
+  return Number.isNaN(date.getTime()) ? null : date;
+};
+
 export const Dashboard: React.FC = () => {
   const navigate = useNavigate();
   const { user } = useAuthStore();
@@ -30,15 +75,18 @@ export const Dashboard: React.FC = () => {
   const fetchDashboardData = async () => {
     try {
       setIsLoading(true);
-      const [summaryRes, recentRes] = await Promise.all([
+      const [summaryRes, recentRes, faultyRes] = await Promise.all([
         api.get('/dashboard/summary'),
         api.get('/dashboard/recent'),
+        api.get('/laptops?condition=FAULTY&limit=1').catch(() => null),
       ]);
       
-      console.log('Dashboard Data Raw:', { summaryRes, recentRes });
+      console.log('Dashboard Data Raw:', { summaryRes, recentRes, faultyRes });
 
       // Robust Summary Extraction
-      const summaryData = summaryRes.data && summaryRes.data.data ? summaryRes.data.data : (summaryRes.data || summaryRes);
+      const faultyTotal = Number.isFinite(Number(faultyRes?.total)) ? Number(faultyRes.total) : undefined;
+      const summaryData = normalizeDashboardSummary(summaryRes, faultyTotal);
+      console.log('DEBUG: Dashboard Summary Data:', summaryData);
       setSummary(summaryData);
 
       // Robust Recent Extraction
@@ -182,7 +230,7 @@ export const Dashboard: React.FC = () => {
                       </div>
                     </div>
                     <div className="ra-date">
-                      {item.assigned_date ? format(new Date(item.assigned_date), 'MMM d') : '—'}
+                      {toValidDate(item.assigned_date) ? format(toValidDate(item.assigned_date)!, 'MMM d') : '-'}
                     </div>
                   </div>
                 ))

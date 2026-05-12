@@ -5,6 +5,15 @@ import { api } from '../api';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 
+const toValidDate = (...values: unknown[]): Date => {
+  for (const value of values) {
+    if (!value) continue;
+    const date = new Date(value as string | number | Date);
+    if (!Number.isNaN(date.getTime())) return date;
+  }
+  return new Date();
+};
+
 export const Notifications: React.FC = () => {
   const navigate = useNavigate();
   const [notifications, setNotifications] = useState<any[]>([]);
@@ -33,21 +42,30 @@ export const Notifications: React.FC = () => {
       }
       
       const mappedAlerts = dashAlerts.map((alert: any) => {
-        const dateVal = alert.assigned_date ? new Date(alert.assigned_date) : new Date();
-        const isValidDate = !isNaN(dateVal.getTime());
-        
+        const d = toValidDate(alert.created_at, alert.createdAt, alert.assigned_date, alert.timestamp);
         return {
           id: `sys-alert-${alert.laptop_id || Math.random()}`,
           type: 'ALERT',
           title: 'Device Retrieval Required',
           message: `${alert.employee_name || 'Staff'} (${alert.employee_status || 'INACTIVE'}) still holds ${alert.brand || ''} ${alert.model || 'Device'}.`,
-          created_at: isValidDate ? dateVal.toISOString() : new Date().toISOString(),
+          created_at: d.toISOString(),
           read: false,
           metadata: { laptop_id: alert.laptop_id }
         };
       });
       
-      setNotifications([...mappedAlerts, ...realTimeNotifs]);
+      const sanitizedRealTime = realTimeNotifs.map((n: any) => {
+        const d = toValidDate(n.created_at, n.createdAt, n.timestamp, n.date);
+        return {
+          ...n,
+          title: n.title || (n.action === 'INACTIVE_EMPLOYEE_LAPTOP_ALERT' ? 'Inventory Alert' : 'System Event'),
+          message: n.message || `Action: ${n.action || 'Unknown'}`,
+          created_at: d.toISOString(),
+          read: n.read ?? false
+        };
+      });
+      
+      setNotifications([...mappedAlerts, ...sanitizedRealTime]);
     } catch (e) {
       console.error('Failed to fetch notifications', e);
     } finally {
@@ -145,7 +163,7 @@ export const Notifications: React.FC = () => {
                       {n.title}
                     </div>
                     <div style={{ fontSize: 12, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 4 }}>
-                      <Clock size={12} /> {format(new Date(n.created_at), 'MMM d, h:mm a')}
+                      <Clock size={12} /> {format(toValidDate(n.created_at), 'MMM d, h:mm a')}
                     </div>
                   </div>
                   <div style={{ fontSize: 13, color: n.read ? 'var(--text-secondary)' : 'var(--text-primary)', lineHeight: 1.5 }}>
