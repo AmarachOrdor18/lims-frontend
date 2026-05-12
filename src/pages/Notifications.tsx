@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Bell, AlertTriangle, Monitor, UserCheck, CheckCircle, Clock, RefreshCw, ChevronRight } from 'lucide-react';
+import { Bell, AlertTriangle, Monitor, UserCheck, CheckCircle, Clock, RefreshCw, ChevronRight, Mail } from 'lucide-react';
 import { format } from 'date-fns';
 import { api } from '../api';
 import { useNavigate } from 'react-router-dom';
@@ -12,6 +12,41 @@ const toValidDate = (...values: unknown[]): Date => {
     if (!Number.isNaN(date.getTime())) return date;
   }
   return new Date();
+};
+
+const getPayload = (res: any) => res?.data ?? res;
+
+const pickValue = (source: any, keys: string[]) => {
+  for (const key of keys) {
+    const value = key.split('.').reduce((obj, part) => obj?.[part], source);
+    if (value !== undefined && value !== null && value !== '') return value;
+  }
+  return null;
+};
+
+const isInactiveEmployeeLaptopAlert = (item: any) => {
+  const text = `${item.action ?? ''} ${item.type ?? ''} ${item.title ?? ''} ${item.message ?? ''}`.toUpperCase();
+  return text.includes('INACTIVE') && (text.includes('LAPTOP') || text.includes('DEVICE'));
+};
+
+const normalizeNotification = (n: any) => {
+  const d = toValidDate(n.created_at, n.createdAt, n.timestamp, n.date);
+  return {
+    ...n,
+    id: n.id ?? `notification-${pickValue(n, ['laptop_id', 'metadata.laptop_id']) ?? Math.random()}`,
+    title: n.title || (n.action === 'INACTIVE_EMPLOYEE_LAPTOP_ALERT' ? 'Inventory Alert' : 'System Event'),
+    message: n.message || `Action: ${n.action || 'Unknown'}`,
+    created_at: d.toISOString(),
+    read: n.read ?? false,
+    metadata: {
+      ...(n.metadata ?? {}),
+      laptop_id: pickValue(n, ['metadata.laptop_id', 'laptop_id', 'laptop.id']),
+      employee_id: pickValue(n, ['metadata.employee_id', 'employee_id', 'employee.id']),
+      employee_email: pickValue(n, ['metadata.employee_email', 'employee_email', 'employee.email']),
+      employee_name: pickValue(n, ['metadata.employee_name', 'employee_name', 'employee.name']),
+      asset_tag: pickValue(n, ['metadata.asset_tag', 'asset_tag', 'laptop.asset_tag']),
+    },
+  };
 };
 
 export const Notifications: React.FC = () => {
@@ -50,22 +85,46 @@ export const Notifications: React.FC = () => {
           message: `${alert.employee_name || 'Staff'} (${alert.employee_status || 'INACTIVE'}) still holds ${alert.brand || ''} ${alert.model || 'Device'}.`,
           created_at: d.toISOString(),
           read: false,
-          metadata: { laptop_id: alert.laptop_id }
+          metadata: {
+            laptop_id: alert.laptop_id,
+            employee_id: alert.employee_id,
+            employee_email: alert.employee_email,
+            employee_name: alert.employee_name,
+            asset_tag: alert.asset_tag,
+          }
         };
       });
       
-      const sanitizedRealTime = realTimeNotifs.map((n: any) => {
-        const d = toValidDate(n.created_at, n.createdAt, n.timestamp, n.date);
-        return {
-          ...n,
-          title: n.title || (n.action === 'INACTIVE_EMPLOYEE_LAPTOP_ALERT' ? 'Inventory Alert' : 'System Event'),
-          message: n.message || `Action: ${n.action || 'Unknown'}`,
-          created_at: d.toISOString(),
-          read: n.read ?? false
-        };
-      });
+      const sanitizedRealTime = realTimeNotifs.map(normalizeNotification);
       
-      setNotifications([...mappedAlerts, ...sanitizedRealTime]);
+      const combined = [...mappedAlerts, ...sanitizedRealTime];
+      const verified = await Promise.all(combined.map(async (n) => {
+        if (!isInactiveEmployeeLaptopAlert(n)) return n;
+
+        const laptopId = n.metadata?.laptop_id;
+        if (!laptopId) return n;
+
+        try {
+          const laptop = getPayload(await api.get(`/laptops/${laptopId}`));
+          const assignedToId = laptop?.assigned_to_id ?? laptop?.current_assignee?.id;
+          if (!assignedToId || laptop?.status !== 'ASSIGNED') return null;
+          if (n.metadata?.employee_id && assignedToId !== n.metadata.employee_id) return null;
+
+          if (n.metadata?.employee_id) {
+            const employee = getPayload(await api.get(`/employees/${n.metadata.employee_id}`));
+            if (employee?.status !== 'INACTIVE') return null;
+            n.metadata.employee_email = n.metadata.employee_email ?? employee.email;
+            n.metadata.employee_name = n.metadata.employee_name ?? `${employee.first_name ?? ''} ${employee.last_name ?? ''}`.trim();
+          }
+
+          n.metadata.asset_tag = n.metadata.asset_tag ?? laptop.asset_tag;
+          return n;
+        } catch {
+          return n;
+        }
+      }));
+
+      setNotifications(verified.filter(Boolean));
     } catch (e) {
       console.error('Failed to fetch notifications', e);
     } finally {
@@ -99,6 +158,32 @@ export const Notifications: React.FC = () => {
     } finally {
       setIsScanning(false);
     }
+  };
+
+  const openEmail = async (n: any) => {
+    const employeeId = n.metadata?.employee_id;
+    const laptopId = n.metadata?.laptop_id;
+    if (employeeId && laptopId) {
+      try {
+        await api.post('/dashboard/resolve-alert', { employee_id: employeeId, laptop_id: laptopId });
+        toast.success('Retrieval email sent.');
+        return;
+      } catch (e) {
+        console.error('Failed to send retrieval email', e);
+      }
+    }
+
+    const email = n.metadata?.employee_email;
+    if (!email) {
+      toast.error('No employee email is available for this alert.');
+      return;
+    }
+
+    const subject = encodeURIComponent(`Laptop retrieval: ${n.metadata?.asset_tag || 'assigned device'}`);
+    const body = encodeURIComponent(
+      `Hello ${n.metadata?.employee_name || ''},\n\nOur records show that you still have ${n.metadata?.asset_tag || 'a company laptop'} assigned after your status was marked inactive. Please reply with a suitable time to return the device.\n\nThank you.`
+    );
+    window.location.href = `mailto:${email}?subject=${subject}&body=${body}`;
   };
 
   const getIcon = (type: string) => {
@@ -170,16 +255,28 @@ export const Notifications: React.FC = () => {
                     {n.message}
                   </div>
                   {n.metadata?.laptop_id && (
-                    <button 
-                      className="btn btn-ghost btn-sm"
-                      style={{ marginTop: 12 }}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        navigate(`/laptops/${n.metadata.laptop_id}`);
-                      }}
-                    >
-                      View Laptop Details <ChevronRight size={12} />
-                    </button>
+                    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 12 }}>
+                      <button 
+                        className="btn btn-ghost btn-sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          navigate(`/laptops/${n.metadata.laptop_id}`);
+                        }}
+                      >
+                        View Laptop Details <ChevronRight size={12} />
+                      </button>
+                      {isInactiveEmployeeLaptopAlert(n) && (
+                        <button
+                          className="btn btn-secondary btn-sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            openEmail(n);
+                          }}
+                        >
+                          <Mail size={12} /> Send Email
+                        </button>
+                      )}
+                    </div>
                   )}
                 </div>
                 {!n.read && (

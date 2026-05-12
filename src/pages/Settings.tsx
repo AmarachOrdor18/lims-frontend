@@ -73,10 +73,10 @@ export const Settings: React.FC = () => {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingBottom: 16, borderBottom: '1px solid var(--border-subtle)' }}>
               <div>
-                <div style={{ fontWeight: 600, color: 'var(--text-primary)', fontSize: 14 }}>Email Alerts</div>
-                <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>Receive email when devices become faulty</div>
+                <div style={{ fontWeight: 600, color: 'var(--text-primary)', fontSize: 14 }}>Email Actions</div>
+                <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>Open draft retrieval emails from actionable notifications</div>
               </div>
-              <button className="btn btn-primary btn-sm"><Check size={14} /> Enabled</button>
+              <button className="btn btn-primary btn-sm"><Check size={14} /> Available</button>
             </div>
 
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingBottom: 16, borderBottom: '1px solid var(--border-subtle)' }}>
