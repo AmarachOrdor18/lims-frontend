@@ -32,15 +32,20 @@ export const Notifications: React.FC = () => {
         dashAlerts = alertsRes.data;
       }
       
-      const mappedAlerts = dashAlerts.map(alert => ({
-        id: `sys-alert-${alert.laptop_id || alert.id}`,
-        type: 'ALERT',
-        title: 'Device Retrieval Required',
-        message: `${alert.employee_name} (${alert.employee_status}) still holds ${alert.brand} ${alert.model}.`,
-        created_at: alert.assigned_date || new Date().toISOString(),
-        read: false,
-        metadata: { laptop_id: alert.laptop_id }
-      }));
+      const mappedAlerts = dashAlerts.map((alert: any) => {
+        const dateVal = alert.assigned_date ? new Date(alert.assigned_date) : new Date();
+        const isValidDate = !isNaN(dateVal.getTime());
+        
+        return {
+          id: `sys-alert-${alert.laptop_id || Math.random()}`,
+          type: 'ALERT',
+          title: 'Device Retrieval Required',
+          message: `${alert.employee_name || 'Staff'} (${alert.employee_status || 'INACTIVE'}) still holds ${alert.brand || ''} ${alert.model || 'Device'}.`,
+          created_at: isValidDate ? dateVal.toISOString() : new Date().toISOString(),
+          read: false,
+          metadata: { laptop_id: alert.laptop_id }
+        };
+      });
       
       setNotifications([...mappedAlerts, ...realTimeNotifs]);
     } catch (e) {

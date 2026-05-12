@@ -38,22 +38,19 @@ export const Dashboard: React.FC = () => {
       console.log('Dashboard Data Raw:', { summaryRes, recentRes });
 
       // Robust Summary Extraction
-      const summaryData = summaryRes.data && !Array.isArray(summaryRes.data) ? summaryRes.data : summaryRes;
+      const summaryData = summaryRes.data && summaryRes.data.data ? summaryRes.data.data : (summaryRes.data || summaryRes);
       setSummary(summaryData);
 
       // Robust Recent Extraction
       let rData = [];
-      if (Array.isArray(recentRes)) {
-        rData = recentRes;
-      } else if (recentRes.data && Array.isArray(recentRes.data)) {
+      if (recentRes.data && Array.isArray(recentRes.data)) {
         rData = recentRes.data;
-      } else if (recentRes.data && Array.isArray(recentRes.data.data)) {
+      } else if (recentRes.data && recentRes.data.data) {
         rData = recentRes.data.data;
-      } else if (Array.isArray(recentRes.recent)) {
-        rData = recentRes.recent;
+      } else if (Array.isArray(recentRes)) {
+        rData = recentRes;
       }
       
-      console.log('Dashboard Recent Processed:', rData);
       setRecent(rData);
     } catch (e) {
       console.error('Failed to fetch dashboard data', e);
