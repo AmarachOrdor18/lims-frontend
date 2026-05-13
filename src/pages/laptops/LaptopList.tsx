@@ -39,7 +39,7 @@ const BRAND_OPTIONS   = ['Dell','Apple','HP','Lenovo','Microsoft','ASUS','Acer',
 const STATUS_OPTIONS  = ['AVAILABLE','ASSIGNED','RETIRED'];
 const CONDITION_OPTIONS = ['FUNCTIONAL','FAULTY'];
 const PAGE_SIZE = 20;
-const FILTERED_PAGE_SIZE = 1000;
+const CLIENT_FILTER_FETCH_SIZE = 5000;
 
 // ─── Tiny shared sub-components ───────────────────────────────────────────────
 
@@ -187,12 +187,15 @@ export const LaptopList: React.FC = () => {
     !!(filters.search || filters.asset_tag || filters.model || filters.serial_number || filters.assigned_to ||
        filters.brands.length || filters.statuses.length || filters.conditions.length);
 
+  // assigned_to is client-side only — fetch a large batch so it can search across all records
+  const hasClientOnlyFilter = !!filters.assigned_to;
+
   // ── Data fetching ──────────────────────────────────────────────────────────
   const { data: response, isLoading, refetch } = useQuery({
     queryKey: ['laptops', page, filters, sortConfig],
     queryFn: async ({ signal }) => {
-      const queryPage = hasFilters ? 1 : page;
-      const queryLimit = hasFilters ? FILTERED_PAGE_SIZE : PAGE_SIZE;
+      const queryPage = hasClientOnlyFilter ? 1 : page;
+      const queryLimit = hasClientOnlyFilter ? CLIENT_FILTER_FETCH_SIZE : PAGE_SIZE;
       let q = `?page=${queryPage}&limit=${queryLimit}`;
       if (filters.statuses.length)      q += `&status=${filters.statuses.join(',')}`;
       if (filters.conditions.length)    q += `&condition=${filters.conditions.join(',')}`;
@@ -201,38 +204,23 @@ export const LaptopList: React.FC = () => {
       if (filters.asset_tag)            q += `&asset_tag=${encodeURIComponent(filters.asset_tag)}`;
       if (filters.model)                q += `&model=${encodeURIComponent(filters.model)}`;
       if (filters.serial_number)        q += `&serial_number=${encodeURIComponent(filters.serial_number)}`;
-      if (filters.assigned_to)          q += `&assigned_to=${encodeURIComponent(filters.assigned_to)}`;
       q += `&sort_by=${sortConfig.key}&sort_dir=${sortConfig.direction}`;
       return api.get(`/laptops${q}`, signal);
     },
     placeholderData: prev => prev,
   });
 
-  const rawLaptops: Laptop[] = response?.data  ?? [];
-  
-  // ── Client-side filtering fallback ─────────────────────────────────────────
+  const rawLaptops: Laptop[] = response?.data ?? [];
+
+  // ── Client-side filter for assigned_to only (not supported server-side) ────
   const laptops = useMemo(() => {
-    return rawLaptops.filter(lp => {
-      if (filters.search) {
-        const s = filters.search.toLowerCase();
-        const match = lp.asset_tag.toLowerCase().includes(s) || 
-                      lp.brand.toLowerCase().includes(s) || 
-                      lp.model.toLowerCase().includes(s) ||
-                      lp.serial_number.toLowerCase().includes(s);
-        if (!match) return false;
-      }
-      if (filters.asset_tag && !lp.asset_tag.toLowerCase().includes(filters.asset_tag.toLowerCase())) return false;
-      if (filters.model && !lp.model.toLowerCase().includes(filters.model.toLowerCase())) return false;
-      if (filters.serial_number && !lp.serial_number.toLowerCase().includes(filters.serial_number.toLowerCase())) return false;
-      if (filters.assigned_to && !(lp as any).assigned_to_name?.toLowerCase().includes(filters.assigned_to.toLowerCase())) return false;
-      if (filters.brands.length && !filters.brands.includes(lp.brand)) return false;
-      if (filters.statuses.length && !filters.statuses.includes(lp.status)) return false;
-      if (filters.conditions.length && !filters.conditions.includes(lp.condition)) return false;
-      
-      return true;
-    });
-  }, [rawLaptops, filters]);
-  const total: number = hasFilters ? laptops.length : (response?.total ?? 0);
+    if (!filters.assigned_to) return rawLaptops;
+    const s = filters.assigned_to.toLowerCase();
+    return rawLaptops.filter(lp => (lp as any).assigned_to_name?.toLowerCase().includes(s));
+  }, [rawLaptops, filters.assigned_to]);
+
+  // When assigned_to is active we have all matching records locally; otherwise use server total
+  const total: number = hasClientOnlyFilter ? laptops.length : (response?.total ?? 0);
 
   // ── Excel export helper ────────────────────────────────────────────────────
   function downloadExcel(filename: string, rows: Laptop[]) {
@@ -301,10 +289,12 @@ export const LaptopList: React.FC = () => {
   };
 
   // ── Pagination ─────────────────────────────────────────────────────────────
-  const currentPage = hasFilters ? 1 : page;
-  const totalPages = hasFilters ? 1 : Math.ceil(total / PAGE_SIZE) || 1;
-  const pageFrom   = total === 0 ? 0 : (currentPage - 1) * PAGE_SIZE + 1;
-  const pageTo     = hasFilters ? total : Math.min(total, currentPage * PAGE_SIZE);
+  // When assigned_to client filter is active, all results are shown on one virtual page.
+  // For everything else, paginate server-side so search/filters work across ALL records.
+  const currentPage = hasClientOnlyFilter ? 1 : page;
+  const totalPages  = hasClientOnlyFilter ? 1 : Math.ceil(total / PAGE_SIZE) || 1;
+  const pageFrom    = total === 0 ? 0 : (currentPage - 1) * PAGE_SIZE + 1;
+  const pageTo      = hasClientOnlyFilter ? total : Math.min(total, currentPage * PAGE_SIZE);
 
   // ── Get assigned employee name — backend returns this flat ─────────────────
   const getAssigneeName = (lp: any): string => {

@@ -167,15 +167,7 @@ export const LaptopFormPanel: React.FC<LaptopFormPanelProps> = ({
                 <button
                   type="button"
                   className={`btn btn-sm ${form.condition === 'FUNCTIONAL' ? 'btn-success' : 'btn-ghost'}`}
-                  onClick={() => setForm(p => {
-                    if (p.condition === 'FUNCTIONAL') return p;
-                    return {
-                      ...p,
-                      condition: 'FUNCTIONAL',
-                      notes: !p.notes && p.fault_description ? p.fault_description : p.notes,
-                      fault_description: !p.notes && p.fault_description ? '' : p.fault_description,
-                    };
-                  })}
+                  onClick={() => setForm(p => ({ ...p, condition: 'FUNCTIONAL' }))}
                   style={{ flex: 1 }}
                 >
                   <CheckCircle size={14} /> Functional
@@ -183,15 +175,7 @@ export const LaptopFormPanel: React.FC<LaptopFormPanelProps> = ({
                 <button
                   type="button"
                   className={`btn btn-sm ${form.condition === 'FAULTY' ? 'btn-warning' : 'btn-ghost'}`}
-                  onClick={() => setForm(p => {
-                    if (p.condition === 'FAULTY') return p;
-                    return {
-                      ...p,
-                      condition: 'FAULTY',
-                      fault_description: !p.fault_description && p.notes ? p.notes : p.fault_description,
-                      notes: !p.fault_description && p.notes ? '' : p.notes,
-                    };
-                  })}
+                  onClick={() => setForm(p => ({ ...p, condition: 'FAULTY' }))}
                   style={{ flex: 1 }}
                 >
                   <AlertTriangle size={14} /> Faulty
@@ -211,22 +195,20 @@ export const LaptopFormPanel: React.FC<LaptopFormPanelProps> = ({
             </div>
           </div>
 
-          {/* Notes (only when FUNCTIONAL) */}
-          {form.condition !== 'FAULTY' && (
-            <div className="form-group">
-              <label htmlFor="lp-notes" className="form-label">Notes</label>
-              <textarea
-                id="lp-notes"
-                className="form-textarea"
-                placeholder="Optional notes about this device..."
-                value={form.notes}
-                onChange={e => setForm(p => ({ ...p, notes: e.target.value }))}
-                rows={3}
-              />
-            </div>
-          )}
+          {/* Notes */}
+          <div className="form-group">
+            <label htmlFor="lp-notes" className="form-label">Notes</label>
+            <textarea
+              id="lp-notes"
+              className="form-textarea"
+              placeholder="Optional notes about this device..."
+              value={form.notes}
+              onChange={e => setForm(p => ({ ...p, notes: e.target.value }))}
+              rows={3}
+            />
+          </div>
 
-          {/* Fault Description (only when FAULTY) */}
+          {/* Fault Description (shown when faulty) */}
           {form.condition === 'FAULTY' && (
             <div className="form-group">
               <label htmlFor="lp-fault" className="form-label">Fault Description</label>
