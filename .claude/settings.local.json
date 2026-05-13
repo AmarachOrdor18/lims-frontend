@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(xargs grep -l \"people\\\\|people\\\\|assignment\" -i)",
+      "Bash(xargs grep -l \"comment\\\\|description\\\\|notes\" -i)"
+    ]
+  }
+}
