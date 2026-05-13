@@ -66,14 +66,17 @@ export const LaptopForm: React.FC = () => {
     
     setSaving(true);
     try {
+      const payload = { ...form, purchase_date: form.purchase_date || null };
       if (isEdit) {
-        await api.patch(`/laptops/${id}`, form);
+        await api.patch(`/laptops/${id}`, payload);
       } else {
-        await api.post('/laptops', form);
+        await api.post('/laptops', payload);
       }
       navigate('/laptops');
     } catch (e: any) {
-      toast.error(e.message || 'Failed to save laptop');
+      let msg = 'Failed to save laptop';
+      try { msg = JSON.parse(e.message)?.error ?? e.message; } catch { msg = e.message || msg; }
+      toast.error(msg);
     } finally {
       setSaving(false);
     }

@@ -83,16 +83,19 @@ export const LaptopFormPanel: React.FC<LaptopFormPanelProps> = ({
 
     setSaving(true);
     try {
+      const payload = { ...form, purchase_date: form.purchase_date || null };
       if (isEdit) {
-        await api.patch(`/laptops/${laptopId}`, form);
+        await api.patch(`/laptops/${laptopId}`, payload);
       } else {
-        await api.post('/laptops', form);
+        await api.post('/laptops', payload);
       }
       toast.success(isEdit ? 'Laptop updated' : 'Laptop added');
       onSuccess();
       onClose();
     } catch (e: any) {
-      toast.error(e.message || 'Failed to save laptop');
+      let msg = 'Failed to save laptop';
+      try { msg = JSON.parse(e.message)?.error ?? e.message; } catch { msg = e.message || msg; }
+      toast.error(msg);
     } finally {
       setSaving(false);
     }
