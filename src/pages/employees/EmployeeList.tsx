@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import {
-  Plus, User, Eye,
+  Plus, User, Eye, UserPlus,
   Monitor, Activity,
   ChevronsLeft, ChevronLeft, ChevronRight, ChevronsRight,
   ChevronsUpDown, ChevronUp, ChevronDown,
@@ -9,8 +9,9 @@ import {
 import { Badge }      from '../../components/UI/Badge';
 import { EmptyState } from '../../components/UI/EmptyState';
 import { CSVImporter } from '../../components/UI/CSVImporter';
-import { EmployeeDetailPanel } from './EmployeeDetailPanel';
-import { EmployeeFormPanel }   from './EmployeeFormPanel';
+import { EmployeeDetailPanel }      from './EmployeeDetailPanel';
+import { EmployeeFormPanel }        from './EmployeeFormPanel';
+import { EmployeeAssignmentModal }  from '../../components/Modals/EmployeeAssignmentModal';
 import { api }        from '../../api';
 import { toast }      from 'sonner';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -140,6 +141,8 @@ export const EmployeeList: React.FC = () => {
   const [detailEmployeeId, setDetailEmployeeId] = useState<string | null>(null);
   const [formPanelOpen, setFormPanelOpen] = useState(false);
   const [formEmployeeId, setFormEmployeeId] = useState<string | null>(null);
+  const [assignModalOpen, setAssignModalOpen] = useState(false);
+  const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
 
   useEffect(() => { setPage(1); }, [filters, sortConfig]);
 
@@ -536,6 +539,16 @@ export const EmployeeList: React.FC = () => {
                             <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
                           </svg>
                         </button>
+                        {!(emp as any).assigned_asset_tag && (
+                          <button
+                            type="button"
+                            style={{ ...S.actBtn(), color: 'var(--status-available-text)', borderColor: 'var(--status-available-text)', background: 'rgba(34, 197, 94, 0.08)' }}
+                            title="Assign Laptop"
+                            onClick={() => { setSelectedEmployee(emp); setAssignModalOpen(true); }}
+                          >
+                            <UserPlus size={13} />
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -561,6 +574,16 @@ export const EmployeeList: React.FC = () => {
                         <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
                       </svg>
                     </button>
+                    {!(emp as any).assigned_asset_tag && (
+                      <button
+                        type="button"
+                        style={{ ...S.actBtn(), color: 'var(--status-available-text)', borderColor: 'var(--status-available-text)', background: 'rgba(34, 197, 94, 0.08)' }}
+                        title="Assign Laptop"
+                        onClick={() => { setSelectedEmployee(emp); setAssignModalOpen(true); }}
+                      >
+                        <UserPlus size={13} />
+                      </button>
+                    )}
                   </div>
                 </div>
               </div>
@@ -601,6 +624,13 @@ export const EmployeeList: React.FC = () => {
         isOpen={formPanelOpen}
         onClose={() => setFormPanelOpen(false)}
         employeeId={formEmployeeId}
+        onSuccess={() => queryClient.invalidateQueries({ queryKey: ['employees'] })}
+      />
+
+      <EmployeeAssignmentModal
+        isOpen={assignModalOpen}
+        onClose={() => { setAssignModalOpen(false); setSelectedEmployee(null); }}
+        employee={selectedEmployee}
         onSuccess={() => queryClient.invalidateQueries({ queryKey: ['employees'] })}
       />
     </div>

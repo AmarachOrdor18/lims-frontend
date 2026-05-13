@@ -25,13 +25,14 @@ interface LaptopFilters {
   asset_tag:    string;
   model:        string;
   serial_number: string;
+  assigned_to:  string;
   brands:       string[];
   statuses:     string[];
   conditions:   string[];
 }
 
 const EMPTY_FILTERS: LaptopFilters = {
-  search: '', asset_tag: '', model: '', serial_number: '', brands: [], statuses: [], conditions: [],
+  search: '', asset_tag: '', model: '', serial_number: '', assigned_to: '', brands: [], statuses: [], conditions: [],
 };
 
 const BRAND_OPTIONS   = ['Dell','Apple','HP','Lenovo','Microsoft','ASUS','Acer','Samsung'];
@@ -183,7 +184,7 @@ export const LaptopList: React.FC = () => {
   }, []);
 
   const hasFilters =
-    !!(filters.search || filters.asset_tag || filters.model || filters.serial_number ||
+    !!(filters.search || filters.asset_tag || filters.model || filters.serial_number || filters.assigned_to ||
        filters.brands.length || filters.statuses.length || filters.conditions.length);
 
   // ── Data fetching ──────────────────────────────────────────────────────────
@@ -200,6 +201,7 @@ export const LaptopList: React.FC = () => {
       if (filters.asset_tag)            q += `&asset_tag=${encodeURIComponent(filters.asset_tag)}`;
       if (filters.model)                q += `&model=${encodeURIComponent(filters.model)}`;
       if (filters.serial_number)        q += `&serial_number=${encodeURIComponent(filters.serial_number)}`;
+      if (filters.assigned_to)          q += `&assigned_to=${encodeURIComponent(filters.assigned_to)}`;
       q += `&sort_by=${sortConfig.key}&sort_dir=${sortConfig.direction}`;
       return api.get(`/laptops${q}`, signal);
     },
@@ -222,6 +224,7 @@ export const LaptopList: React.FC = () => {
       if (filters.asset_tag && !lp.asset_tag.toLowerCase().includes(filters.asset_tag.toLowerCase())) return false;
       if (filters.model && !lp.model.toLowerCase().includes(filters.model.toLowerCase())) return false;
       if (filters.serial_number && !lp.serial_number.toLowerCase().includes(filters.serial_number.toLowerCase())) return false;
+      if (filters.assigned_to && !(lp as any).assigned_to_name?.toLowerCase().includes(filters.assigned_to.toLowerCase())) return false;
       if (filters.brands.length && !filters.brands.includes(lp.brand)) return false;
       if (filters.statuses.length && !filters.statuses.includes(lp.status)) return false;
       if (filters.conditions.length && !filters.conditions.includes(lp.condition)) return false;
@@ -467,6 +470,12 @@ export const LaptopList: React.FC = () => {
                   placeholder="Search serial…"
                   style={{ width: '100%', background: 'var(--bg-base)', border: `1px solid var(--border-default)`, borderRadius: 5, padding: '8px 10px', color: 'var(--text-primary)', fontSize: 13 }} />
               </div>
+              <div>
+                <span style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 4, display: 'block', textTransform: 'uppercase' }}>Assigned To</span>
+                <input value={pendingFilters.assigned_to} onChange={e => setPendingFilters(f => ({ ...f, assigned_to: e.target.value }))}
+                  placeholder="Search by assignee name…"
+                  style={{ width: '100%', background: 'var(--bg-base)', border: `1px solid var(--border-default)`, borderRadius: 5, padding: '8px 10px', color: 'var(--text-primary)', fontSize: 13 }} />
+              </div>
             </div>
           </AccordionSection>
           <div style={{ display: 'flex', gap: 8, padding: '12px 20px', justifyContent: 'flex-end' }}>
@@ -492,6 +501,7 @@ export const LaptopList: React.FC = () => {
           {filters.asset_tag     && <Tag label={`Asset Tag: ${filters.asset_tag}`} onRemove={() => setFilters(f => ({ ...f, asset_tag: '' }))} />}
           {filters.model         && <Tag label={`Model: ${filters.model}`}           onRemove={() => setFilters(f => ({ ...f, model: '' }))} />}
           {filters.serial_number && <Tag label={`S/N: ${filters.serial_number}`}     onRemove={() => setFilters(f => ({ ...f, serial_number: '' }))} />}
+          {filters.assigned_to   && <Tag label={`Assigned: ${filters.assigned_to}`} onRemove={() => setFilters(f => ({ ...f, assigned_to: '' }))} />}
           {filters.brands.map(b     => <Tag key={b} label={b}  onRemove={() => setFilters(f => ({ ...f, brands:     f.brands.filter(x => x !== b) }))} />)}
           {filters.statuses.map(s   => <Tag key={s} label={s}  onRemove={() => setFilters(f => ({ ...f, statuses:   f.statuses.filter(x => x !== s) }))} />)}
           {filters.conditions.map(c => <Tag key={c} label={c}  onRemove={() => setFilters(f => ({ ...f, conditions: f.conditions.filter(x => x !== c) }))} />)}
