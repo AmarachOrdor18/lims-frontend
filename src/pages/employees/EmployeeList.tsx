@@ -216,13 +216,58 @@ export const EmployeeList: React.FC = () => {
   }, [employees]);
 
   // ── Excel export helper ────────────────────────────────────────────────────
-  function downloadExcel(filename: string, rows: Employee[]) {
+  function downloadExcel(filename: string, rows: any[]) {
     if (!rows.length) return;
     const worksheet = XLSX.utils.json_to_sheet(rows);
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, 'Employees');
-    XLSX.writeFile(workbook, filename.replace('.csv', '.xlsx'));
+    XLSX.writeFile(workbook, filename);
   }
+
+  const handleExport = async () => {
+    setExportOpen(false);
+    const toastId = toast.loading('Preparing export data...');
+    try {
+      let q = `?page=1&limit=100000`;
+      if (filters.statuses.length)       q += `&status=${filters.statuses.join(',')}`;
+      if (filters.departments.length)    q += `&department=${filters.departments.join(',')}`;
+      if (filters.search)                q += `&q=${encodeURIComponent(filters.search)}`;
+      if (filters.name)                  q += `&name=${encodeURIComponent(filters.name)}`;
+      if (filters.email)                 q += `&email=${encodeURIComponent(filters.email)}`;
+      if (filters.asset_tag)             q += `&asset_tag=${encodeURIComponent(filters.asset_tag)}`;
+      if (filters.has_laptop !== 'all')  q += `&has_laptop=${filters.has_laptop}`;
+      q += `&sort_by=${sortConfig.key}&sort_dir=${sortConfig.direction}`;
+
+      const res = await api.get(`/employees${q}`);
+      const allRows = res.data ?? [];
+      
+      if (!allRows.length) {
+        toast.error('No employees to export', { id: toastId });
+        return;
+      }
+
+      const formattedRows = allRows.map((emp: any) => ({
+        'First Name': emp.first_name,
+        'Last Name': emp.last_name,
+        'Email': emp.email,
+        'Department': emp.department,
+        'Job Title': emp.job_title || '—',
+        'Location': emp.location || '—',
+        'Entity': emp.entity || '—',
+        'Staff Type': emp.staff_type || '—',
+        'Seniority': emp.seniority || '—',
+        'Status': emp.status,
+        'Assigned Laptop Tag': emp.assigned_asset_tag || '—',
+        'Created At': emp.created_at ? new Date(emp.created_at).toLocaleDateString() : '—',
+      }));
+
+      const dateStr = new Date().toISOString().split('T')[0];
+      downloadExcel(`employees_export_${dateStr}.xlsx`, formattedRows);
+      toast.success(`Exported ${allRows.length} employees successfully`, { id: toastId });
+    } catch (err: any) {
+      toast.error('Failed to export employees', { id: toastId });
+    }
+  };
 
   // ── CSV import helper ──────────────────────────────────────────────────────
   const normalizeKey = (row: Record<string, string>, possible: string[]) => {
@@ -366,7 +411,7 @@ export const EmployeeList: React.FC = () => {
             </button>
             {exportOpen && (
               <div style={{ position: 'absolute', right: 0, top: 38, background: 'var(--bg-elevated)', border: `1px solid var(--border-default)`, borderRadius: 8, minWidth: 160, zIndex: 50, boxShadow: '0 4px 16px rgba(0,0,0,0.3)' }}>
-                <button style={S.expItem()} onClick={() => { downloadExcel('employees.xlsx', employees); setExportOpen(false); }}>Export to Excel</button>
+                <button style={S.expItem()} onClick={handleExport}>Export to Excel</button>
               </div>
             )}
           </div>

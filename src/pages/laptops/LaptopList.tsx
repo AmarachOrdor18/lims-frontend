@@ -223,13 +223,60 @@ export const LaptopList: React.FC = () => {
   const total: number = hasClientOnlyFilter ? laptops.length : (response?.total ?? 0);
 
   // ── Excel export helper ────────────────────────────────────────────────────
-  function downloadExcel(filename: string, rows: Laptop[]) {
+  function downloadExcel(filename: string, rows: any[]) {
     if (!rows.length) return;
     const worksheet = XLSX.utils.json_to_sheet(rows);
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, 'Laptops');
-    XLSX.writeFile(workbook, filename.replace('.csv', '.xlsx'));
+    XLSX.writeFile(workbook, filename);
   }
+
+  const handleExport = async () => {
+    setExportOpen(false);
+    const toastId = toast.loading('Preparing export data...');
+    try {
+      let q = `?page=1&limit=100000`;
+      if (filters.statuses.length)      q += `&status=${filters.statuses.join(',')}`;
+      if (filters.conditions.length)    q += `&condition=${filters.conditions.join(',')}`;
+      if (filters.brands.length)        q += `&brand=${filters.brands.join(',')}`;
+      if (filters.search)               q += `&q=${encodeURIComponent(filters.search)}`;
+      if (filters.asset_tag)            q += `&asset_tag=${encodeURIComponent(filters.asset_tag)}`;
+      if (filters.model)                q += `&model=${encodeURIComponent(filters.model)}`;
+      if (filters.serial_number)        q += `&serial_number=${encodeURIComponent(filters.serial_number)}`;
+      q += `&sort_by=${sortConfig.key}&sort_dir=${sortConfig.direction}`;
+
+      const res = await api.get(`/laptops${q}`);
+      let allRows = res.data ?? [];
+
+      if (filters.assigned_to) {
+        const s = filters.assigned_to.toLowerCase();
+        allRows = allRows.filter((lp: any) => lp.assigned_to_name?.toLowerCase().includes(s));
+      }
+
+      if (!allRows.length) {
+        toast.error('No laptops to export', { id: toastId });
+        return;
+      }
+
+      const formattedRows = allRows.map((lp: any) => ({
+        'Asset Tag': lp.asset_tag,
+        'Brand': lp.brand,
+        'Model': lp.model,
+        'Serial Number': lp.serial_number,
+        'Status': lp.status,
+        'Condition': lp.condition,
+        'Assigned To': lp.assigned_to_name || '—',
+        'Purchase Date': lp.purchase_date ? new Date(lp.purchase_date).toLocaleDateString() : '—',
+        'Created At': lp.created_at ? new Date(lp.created_at).toLocaleDateString() : '—',
+      }));
+
+      const dateStr = new Date().toISOString().split('T')[0];
+      downloadExcel(`laptops_export_${dateStr}.xlsx`, formattedRows);
+      toast.success(`Exported ${allRows.length} laptops successfully`, { id: toastId });
+    } catch (err: any) {
+      toast.error('Failed to export laptops', { id: toastId });
+    }
+  };
 
   // ── CSV import helper ──────────────────────────────────────────────────────
   const normalizeKey = (row: Record<string, string>, possible: string[]) => {
@@ -390,7 +437,7 @@ export const LaptopList: React.FC = () => {
             </button>
             {exportOpen && (
               <div style={{ position: 'absolute', right: 0, top: 38, background: 'var(--bg-elevated)', border: `1px solid var(--border-default)`, borderRadius: 8, minWidth: 160, zIndex: 50, boxShadow: '0 4px 16px rgba(0,0,0,0.3)' }}>
-                <button style={S.expItem()} onClick={() => { downloadExcel('laptops.xlsx', laptops); setExportOpen(false); }}>Export to Excel</button>
+                <button style={S.expItem()} onClick={handleExport}>Export to Excel</button>
               </div>
             )}
           </div>
