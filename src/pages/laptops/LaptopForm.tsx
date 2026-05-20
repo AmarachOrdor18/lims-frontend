@@ -66,14 +66,28 @@ export const LaptopForm: React.FC = () => {
     
     setSaving(true);
     try {
+      const payload = { ...form, purchase_date: form.purchase_date || null };
+      let savedId: string | null | undefined = id as string;
+
       if (isEdit) {
-        await api.patch(`/laptops/${id}`, form);
+        await api.patch(`/laptops/${id}`, payload);
       } else {
-        await api.post('/laptops', form);
+        const res = await api.post('/laptops', payload);
+        savedId = res?.data?.id ?? res?.id ?? null;
       }
+
+      if (savedId) {
+        await api.patch(`/laptops/${savedId}/status`, {
+          condition: form.condition,
+          fault_description: (form as any).fault_description || null,
+        });
+      }
+
       navigate('/laptops');
     } catch (e: any) {
-      toast.error(e.message || 'Failed to save laptop');
+      let msg = 'Failed to save laptop';
+      try { msg = JSON.parse(e.message)?.error ?? e.message; } catch { msg = e.message || msg; }
+      toast.error(msg);
     } finally {
       setSaving(false);
     }

@@ -83,16 +83,32 @@ export const LaptopFormPanel: React.FC<LaptopFormPanelProps> = ({
 
     setSaving(true);
     try {
+      const payload = { ...form, purchase_date: form.purchase_date || null };
+      let savedId: string | null | undefined = laptopId;
+
       if (isEdit) {
-        await api.patch(`/laptops/${laptopId}`, form);
+        await api.patch(`/laptops/${laptopId}`, payload);
       } else {
-        await api.post('/laptops', form);
+        const res = await api.post('/laptops', payload);
+        savedId = res?.data?.id ?? res?.id ?? null;
       }
+
+      // The general PATCH only updates core fields; use the /status endpoint
+      // to ensure condition and fault_description are always persisted.
+      if (savedId) {
+        await api.patch(`/laptops/${savedId}/status`, {
+          condition: form.condition,
+          fault_description: form.fault_description || null,
+        });
+      }
+
       toast.success(isEdit ? 'Laptop updated' : 'Laptop added');
       onSuccess();
       onClose();
     } catch (e: any) {
-      toast.error(e.message || 'Failed to save laptop');
+      let msg = 'Failed to save laptop';
+      try { msg = JSON.parse(e.message)?.error ?? e.message; } catch { msg = e.message || msg; }
+      toast.error(msg);
     } finally {
       setSaving(false);
     }

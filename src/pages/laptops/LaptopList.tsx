@@ -25,20 +25,21 @@ interface LaptopFilters {
   asset_tag:    string;
   model:        string;
   serial_number: string;
+  assigned_to:  string;
   brands:       string[];
   statuses:     string[];
   conditions:   string[];
 }
 
 const EMPTY_FILTERS: LaptopFilters = {
-  search: '', asset_tag: '', model: '', serial_number: '', brands: [], statuses: [], conditions: [],
+  search: '', asset_tag: '', model: '', serial_number: '', assigned_to: '', brands: [], statuses: [], conditions: [],
 };
 
 const BRAND_OPTIONS   = ['Dell','Apple','HP','Lenovo','Microsoft','ASUS','Acer','Samsung'];
 const STATUS_OPTIONS  = ['AVAILABLE','ASSIGNED','RETIRED'];
 const CONDITION_OPTIONS = ['FUNCTIONAL','FAULTY'];
 const PAGE_SIZE = 20;
-const FILTERED_PAGE_SIZE = 1000;
+const CLIENT_FILTER_FETCH_SIZE = 5000;
 
 // ─── Tiny shared sub-components ───────────────────────────────────────────────
 
@@ -183,15 +184,18 @@ export const LaptopList: React.FC = () => {
   }, []);
 
   const hasFilters =
-    !!(filters.search || filters.asset_tag || filters.model || filters.serial_number ||
+    !!(filters.search || filters.asset_tag || filters.model || filters.serial_number || filters.assigned_to ||
        filters.brands.length || filters.statuses.length || filters.conditions.length);
+
+  // assigned_to is client-side only — fetch a large batch so it can search across all records
+  const hasClientOnlyFilter = !!filters.assigned_to;
 
   // ── Data fetching ──────────────────────────────────────────────────────────
   const { data: response, isLoading, refetch } = useQuery({
     queryKey: ['laptops', page, filters, sortConfig],
     queryFn: async ({ signal }) => {
-      const queryPage = hasFilters ? 1 : page;
-      const queryLimit = hasFilters ? FILTERED_PAGE_SIZE : PAGE_SIZE;
+      const queryPage = hasClientOnlyFilter ? 1 : page;
+      const queryLimit = hasClientOnlyFilter ? CLIENT_FILTER_FETCH_SIZE : PAGE_SIZE;
       let q = `?page=${queryPage}&limit=${queryLimit}`;
       if (filters.statuses.length)      q += `&status=${filters.statuses.join(',')}`;
       if (filters.conditions.length)    q += `&condition=${filters.conditions.join(',')}`;
@@ -206,30 +210,17 @@ export const LaptopList: React.FC = () => {
     placeholderData: prev => prev,
   });
 
-  const rawLaptops: Laptop[] = response?.data  ?? [];
-  
-  // ── Client-side filtering fallback ─────────────────────────────────────────
+  const rawLaptops: Laptop[] = response?.data ?? [];
+
+  // ── Client-side filter for assigned_to only (not supported server-side) ────
   const laptops = useMemo(() => {
-    return rawLaptops.filter(lp => {
-      if (filters.search) {
-        const s = filters.search.toLowerCase();
-        const match = lp.asset_tag.toLowerCase().includes(s) || 
-                      lp.brand.toLowerCase().includes(s) || 
-                      lp.model.toLowerCase().includes(s) ||
-                      lp.serial_number.toLowerCase().includes(s);
-        if (!match) return false;
-      }
-      if (filters.asset_tag && !lp.asset_tag.toLowerCase().includes(filters.asset_tag.toLowerCase())) return false;
-      if (filters.model && !lp.model.toLowerCase().includes(filters.model.toLowerCase())) return false;
-      if (filters.serial_number && !lp.serial_number.toLowerCase().includes(filters.serial_number.toLowerCase())) return false;
-      if (filters.brands.length && !filters.brands.includes(lp.brand)) return false;
-      if (filters.statuses.length && !filters.statuses.includes(lp.status)) return false;
-      if (filters.conditions.length && !filters.conditions.includes(lp.condition)) return false;
-      
-      return true;
-    });
-  }, [rawLaptops, filters]);
-  const total: number = hasFilters ? laptops.length : (response?.total ?? 0);
+    if (!filters.assigned_to) return rawLaptops;
+    const s = filters.assigned_to.toLowerCase();
+    return rawLaptops.filter(lp => (lp as any).assigned_to_name?.toLowerCase().includes(s));
+  }, [rawLaptops, filters.assigned_to]);
+
+  // When assigned_to is active we have all matching records locally; otherwise use server total
+  const total: number = hasClientOnlyFilter ? laptops.length : (response?.total ?? 0);
 
   // ── Excel export helper ────────────────────────────────────────────────────
   function downloadExcel(filename: string, rows: Laptop[]) {
@@ -298,10 +289,12 @@ export const LaptopList: React.FC = () => {
   };
 
   // ── Pagination ─────────────────────────────────────────────────────────────
-  const currentPage = hasFilters ? 1 : page;
-  const totalPages = hasFilters ? 1 : Math.ceil(total / PAGE_SIZE) || 1;
-  const pageFrom   = total === 0 ? 0 : (currentPage - 1) * PAGE_SIZE + 1;
-  const pageTo     = hasFilters ? total : Math.min(total, currentPage * PAGE_SIZE);
+  // When assigned_to client filter is active, all results are shown on one virtual page.
+  // For everything else, paginate server-side so search/filters work across ALL records.
+  const currentPage = hasClientOnlyFilter ? 1 : page;
+  const totalPages  = hasClientOnlyFilter ? 1 : Math.ceil(total / PAGE_SIZE) || 1;
+  const pageFrom    = total === 0 ? 0 : (currentPage - 1) * PAGE_SIZE + 1;
+  const pageTo      = hasClientOnlyFilter ? total : Math.min(total, currentPage * PAGE_SIZE);
 
   // ── Get assigned employee name — backend returns this flat ─────────────────
   const getAssigneeName = (lp: any): string => {
@@ -467,6 +460,12 @@ export const LaptopList: React.FC = () => {
                   placeholder="Search serial…"
                   style={{ width: '100%', background: 'var(--bg-base)', border: `1px solid var(--border-default)`, borderRadius: 5, padding: '8px 10px', color: 'var(--text-primary)', fontSize: 13 }} />
               </div>
+              <div>
+                <span style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 4, display: 'block', textTransform: 'uppercase' }}>Assigned To</span>
+                <input value={pendingFilters.assigned_to} onChange={e => setPendingFilters(f => ({ ...f, assigned_to: e.target.value }))}
+                  placeholder="Search by assignee name…"
+                  style={{ width: '100%', background: 'var(--bg-base)', border: `1px solid var(--border-default)`, borderRadius: 5, padding: '8px 10px', color: 'var(--text-primary)', fontSize: 13 }} />
+              </div>
             </div>
           </AccordionSection>
           <div style={{ display: 'flex', gap: 8, padding: '12px 20px', justifyContent: 'flex-end' }}>
@@ -492,6 +491,7 @@ export const LaptopList: React.FC = () => {
           {filters.asset_tag     && <Tag label={`Asset Tag: ${filters.asset_tag}`} onRemove={() => setFilters(f => ({ ...f, asset_tag: '' }))} />}
           {filters.model         && <Tag label={`Model: ${filters.model}`}           onRemove={() => setFilters(f => ({ ...f, model: '' }))} />}
           {filters.serial_number && <Tag label={`S/N: ${filters.serial_number}`}     onRemove={() => setFilters(f => ({ ...f, serial_number: '' }))} />}
+          {filters.assigned_to   && <Tag label={`Assigned: ${filters.assigned_to}`} onRemove={() => setFilters(f => ({ ...f, assigned_to: '' }))} />}
           {filters.brands.map(b     => <Tag key={b} label={b}  onRemove={() => setFilters(f => ({ ...f, brands:     f.brands.filter(x => x !== b) }))} />)}
           {filters.statuses.map(s   => <Tag key={s} label={s}  onRemove={() => setFilters(f => ({ ...f, statuses:   f.statuses.filter(x => x !== s) }))} />)}
           {filters.conditions.map(c => <Tag key={c} label={c}  onRemove={() => setFilters(f => ({ ...f, conditions: f.conditions.filter(x => x !== c) }))} />)}
