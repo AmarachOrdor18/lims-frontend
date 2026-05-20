@@ -513,8 +513,11 @@ export const LaptopList: React.FC = () => {
                   <th style={S.th()} onClick={() => handleSort('asset_tag')}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>Asset Tag<SortChevron col="asset_tag" sortConfig={sortConfig} /></div>
                   </th>
+                  <th style={S.th()} onClick={() => handleSort('brand')}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>Brand<SortChevron col="brand" sortConfig={sortConfig} /></div>
+                  </th>
                   <th style={S.th()} onClick={() => handleSort('model')}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}><Monitor size={11} />Device<SortChevron col="model" sortConfig={sortConfig} /></div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}><Monitor size={11} />Model<SortChevron col="model" sortConfig={sortConfig} /></div>
                   </th>
                   <th style={S.th()} onClick={() => handleSort('serial_number')}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>Serial<SortChevron col="serial_number" sortConfig={sortConfig} /></div>
@@ -542,7 +545,8 @@ export const LaptopList: React.FC = () => {
                     onClick={() => { setDetailLaptopId(lp.id); setDetailPanelOpen(true); }}
                   >
                     <td style={{ ...S.td(), fontWeight: 600, fontFamily: 'monospace', fontSize: 12 }}>{lp.asset_tag}</td>
-                    <td style={{ ...S.td(), fontWeight: 500 }}>{lp.brand} {lp.model}</td>
+                    <td style={{ ...S.td(), fontWeight: 500 }}>{lp.brand}</td>
+                    <td style={{ ...S.td(), fontWeight: 500 }}>{lp.model}</td>
                     <td style={{ ...S.td(true), fontFamily: 'monospace', fontSize: 12 }}>{lp.serial_number}</td>
                     <td style={S.td()}><Badge status={lp.status} /></td>
                     <td style={S.td()}><Badge status={lp.condition} /></td>
