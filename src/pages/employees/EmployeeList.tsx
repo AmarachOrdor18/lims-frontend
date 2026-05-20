@@ -413,11 +413,11 @@ export const EmployeeList: React.FC = () => {
           <AccordionSection title="Search">
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               <div>
-                <span style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 4, display: 'block', textTransform: 'uppercase' }}>Name</span>
+                <span style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 4, display: 'block', textTransform: 'uppercase' }}>Employee</span>
                 <input
                   value={pendingFilters.name}
                   onChange={e => setPendingFilters(f => ({ ...f, name: e.target.value }))}
-                  placeholder="Search by name…"
+                  placeholder="Search by employee…"
                   style={{ width: '100%', background: 'var(--bg-base)', border: `1px solid var(--border-default)`, borderRadius: 5, padding: '8px 10px', color: 'var(--text-primary)', fontSize: 13 }}
                 />
               </div>
@@ -469,7 +469,7 @@ export const EmployeeList: React.FC = () => {
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, padding: '8px 16px', borderBottom: `1px solid var(--border-default)`, alignItems: 'center' }}>
             <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>Active:</span>
             {filters.search    && <Tag label={`Search: ${filters.search}`}    onRemove={() => setFilters(f => ({ ...f, search: '' }))} />}
-            {filters.name      && <Tag label={`Name: ${filters.name}`}       onRemove={() => setFilters(f => ({ ...f, name: '' }))} />}
+            {filters.name      && <Tag label={`Employee: ${filters.name}`}       onRemove={() => setFilters(f => ({ ...f, name: '' }))} />}
             {filters.email     && <Tag label={`Email: ${filters.email}`}     onRemove={() => setFilters(f => ({ ...f, email: '' }))} />}
             {filters.asset_tag && <Tag label={`Asset: ${filters.asset_tag}`} onRemove={() => setFilters(f => ({ ...f, asset_tag: '' }))} />}
             {filters.has_laptop !== 'all' && (
